@@ -1,0 +1,17 @@
+node_modules/
+.DS_Store
+build/
+dist/
+.next/
+out/
+# Ignore environment variables
+.env
+.env.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Ignore temporary or OS files
+*.log
