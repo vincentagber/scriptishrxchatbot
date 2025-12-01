@@ -58,7 +58,8 @@ export default function ChatInterface() {
 
         setIsSubmittingLead(true);
         try {
-            const response = await fetch('http://localhost:3001/api/leads', {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+            const response = await fetch(`${apiUrl}/api/leads`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(leadForm),
@@ -100,7 +101,8 @@ export default function ChatInterface() {
 
         // Backend API call
         try {
-            const response = await fetch('http://localhost:3001/api/chat', {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+            const response = await fetch(`${apiUrl}/api/chat`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
