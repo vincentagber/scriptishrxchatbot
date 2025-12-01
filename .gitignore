@@ -4,6 +4,8 @@ build/
 dist/
 .next/
 out/
+/supabase_schema.sql
+
 # Ignore environment variables
 .env
 .env.local
