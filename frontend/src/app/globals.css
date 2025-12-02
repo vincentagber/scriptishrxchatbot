@@ -11,8 +11,10 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 
-  --color-scriptish-purple: #7E22CE;
-  --color-scriptish-teal: #0D9488;
+  --color-scriptish-purple: #2563EB;
+  /* Primary Blue */
+  --color-scriptish-teal: #3B82F6;
+  /* Secondary Blue */
   --color-scriptish-green: #16A34A;
   --color-scriptish-white: #F8FAFC;
 }

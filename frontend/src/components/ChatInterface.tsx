@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Loader2, MapPin, Info, MessageSquare, Home, HelpCircle, FileText, ChevronRight, User, Phone, Mail } from 'lucide-react';
+import { Send, Loader2, MapPin, Info, MessageSquare, Home, HelpCircle, FileText, ChevronRight, User, Phone, Mail, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface Message {
     id: string;
@@ -21,7 +21,7 @@ export default function ChatInterface() {
         {
             id: '1',
             role: 'assistant',
-            content: "Hello! I'm your ScriptishRx Concierge. How can I help you with your wellness or travel plans today?",
+            content: "Hello! I'm your ScriptishRx AI Assistant. How can I help you with your wellness or travel plans today?",
             timestamp: new Date(),
         },
     ]);
@@ -33,6 +33,7 @@ export default function ChatInterface() {
     const [leadInfo, setLeadInfo] = useState<LeadInfo | null>(null);
     const [leadForm, setLeadForm] = useState<LeadInfo>({ name: '', email: '', phone: '' });
     const [isSubmittingLead, setIsSubmittingLead] = useState(false);
+    const [openQuestionId, setOpenQuestionId] = useState<number | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const quickQuestions = [
@@ -77,6 +78,10 @@ export default function ChatInterface() {
         }
     };
 
+    const toggleQuestion = (id: number) => {
+        setOpenQuestionId(openQuestionId === id ? null : id);
+    };
+
     const handleSend = async (text: string = input) => {
         if (!text.trim()) return;
 
@@ -114,14 +119,19 @@ export default function ChatInterface() {
 
             const data = await response.json();
 
-            const botResponse: Message = {
-                id: (Date.now() + 1).toString(),
-                role: 'assistant',
-                content: data.content,
-                timestamp: new Date(),
-            };
+            // Simulate typing delay for realism
+            setTimeout(() => {
+                const botResponse: Message = {
+                    id: (Date.now() + 1).toString(),
+                    role: 'assistant',
+                    content: data.content,
+                    timestamp: new Date(),
+                };
 
-            setMessages((prev) => [...prev, botResponse]);
+                setMessages((prev) => [...prev, botResponse]);
+                setIsLoading(false);
+            }, 1500); // 1.5s delay
+
         } catch (error) {
             console.error('Error sending message:', error);
             const errorResponse: Message = {
@@ -131,7 +141,6 @@ export default function ChatInterface() {
                 timestamp: new Date(),
             };
             setMessages((prev) => [...prev, errorResponse]);
-        } finally {
             setIsLoading(false);
         }
     };
@@ -305,7 +314,7 @@ export default function ChatInterface() {
                                 </button>
                             </div>
                             <div className="text-center mt-2">
-                                <p className="text-[10px] text-gray-400">Powered by ScriptishRx AI</p>
+                                <p className="text-[10px] text-gray-400">Powered by ScriptishRx AI Assistant</p>
                             </div>
                         </div>
                     </div>
@@ -316,18 +325,36 @@ export default function ChatInterface() {
                         <h3 className="font-bold text-lg mb-4 text-gray-800">Frequently Asked Questions</h3>
                         <div className="space-y-3">
                             {[
-                                { q: "Wellness Lounge Pricing", a: "Our Wellness Lounge is $49.99 for 2 hours." },
-                                { q: "Luggage Storage Pricing", a: "Luggage Storage is $4.99 per hour." },
-                                { q: "Hourly Workspace Pricing", a: "Our Hourly Workspace is $24.99 per hour." },
-                                { q: "WiFi Amenities", a: "Yes, we offer high-speed WiFi." },
+                                { q: "Wellness Lounge Pricing", a: "Our Wellness Lounge is $49.99 for 2 hours. It includes access to our relaxation pods, premium massage chairs, and complimentary herbal teas." },
+                                { q: "Luggage Storage Pricing", a: "Luggage Storage is $4.99 per hour per bag. We offer secure, insured storage so you can explore the city burden-free." },
+                                { q: "Hourly Workspace Pricing", a: "Our Hourly Workspace is $24.99 per hour. It features high-speed fiber internet, ergonomic seating, and private call booths." },
+                                { q: "WiFi Amenities", a: "Yes, we offer complimentary high-speed WiFi for all our guests. Whether you're in the lounge or workspace, you'll stay connected." },
                             ].map((item, i) => (
-                                <div key={i} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                                    <h4 className="font-medium text-scriptish-purple text-sm mb-1">{item.q}</h4>
-                                    <p className="text-xs text-gray-600">{item.a}</p>
+                                <div key={i} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden transition-all duration-300">
+                                    <button
+                                        onClick={() => toggleQuestion(i)}
+                                        className="w-full text-left p-4 flex justify-between items-center hover:bg-gray-50 transition-colors"
+                                    >
+                                        <h4 className="font-medium text-scriptish-purple text-sm">{item.q}</h4>
+                                        {openQuestionId === i ? (
+                                            <ChevronUp size={16} className="text-scriptish-teal" />
+                                        ) : (
+                                            <ChevronDown size={16} className="text-gray-400" />
+                                        )}
+                                    </button>
+                                    <div
+                                        className={`overflow-hidden transition-all duration-300 ease-in-out ${openQuestionId === i ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'
+                                            }`}
+                                    >
+                                        <div className="p-4 pt-0 text-xs text-gray-600 leading-relaxed border-t border-gray-50">
+                                            {item.a}
+                                        </div>
+                                    </div>
                                 </div>
                             ))}
                         </div>
                     </div>
+
                 );
             case 'articles':
                 return (
@@ -354,7 +381,7 @@ export default function ChatInterface() {
                                 Rx
                             </div>
                             <div>
-                                <h1 className="font-semibold text-sm">ScriptishRx Concierge</h1>
+                                <h1 className="font-semibold text-sm">ScriptishRx AI Assistant</h1>
                                 <p className="text-[10px] text-white/80 opacity-90">Always here for you</p>
                             </div>
                         </div>

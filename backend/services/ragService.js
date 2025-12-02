@@ -23,6 +23,16 @@ const faqs = [
     question: "Mission Statement",
     answer: "ScriptishRx is an AI-powered travel wellness platform. We help you discover amazing destinations, plan wellness routines, find secure luggage storage, and explore fascinating historical insights.",
     keywords: ['mission', 'about', 'what is']
+  },
+  {
+    question: "General Wellness Tips",
+    answer: "Here are some travel wellness tips:\n1. Stay Hydrated: Drink plenty of water, especially during flights.\n2. Move Frequently: Stretch your legs every hour to improve circulation.\n3. Adjust Sleep: Start adjusting your sleep schedule a few days before your trip to minimize jet lag.\n4. Healthy Snacking: Pack nutritious snacks like nuts and fruit to avoid unhealthy airport food.",
+    keywords: ['wellness', 'tips', 'health', 'advice', 'healthy']
+  },
+  {
+    question: "Jet Lag Advice",
+    answer: "To combat jet lag: expose yourself to natural light upon arrival, stay hydrated, avoid heavy meals before bed, and try to adapt to the local time zone immediately.",
+    keywords: ['jet lag', 'sleep', 'tired', 'timezone']
   }
 ];
 
