@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Loader2, MapPin, Info, MessageSquare, Home, HelpCircle, FileText, ChevronRight, User, Phone, Mail, ChevronDown, ChevronUp } from 'lucide-react';
+import Image from 'next/image';
 
 interface Message {
     id: string;
@@ -33,14 +34,12 @@ export default function ChatInterface() {
     const [leadInfo, setLeadInfo] = useState<LeadInfo | null>(null);
     const [leadForm, setLeadForm] = useState<LeadInfo>({ name: '', email: '', phone: '' });
     const [isSubmittingLead, setIsSubmittingLead] = useState(false);
+    const [leadError, setLeadError] = useState<string | null>(null);
     const [openQuestionId, setOpenQuestionId] = useState<number | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    const quickQuestions = [
-        "How do I get to the office from O'Hare?",
-        "What wellness services do you offer?",
-        "Tell me about Chicago sightseeing."
-    ];
+
+
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -55,7 +54,11 @@ export default function ChatInterface() {
 
     const handleLeadSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!leadForm.name || !leadForm.email || !leadForm.phone) return;
+        setLeadError(null);
+        if (!leadForm.name || !leadForm.email || !leadForm.phone) {
+            setLeadError('Please fill in all fields.');
+            return;
+        }
 
         setIsSubmittingLead(true);
         try {
@@ -70,14 +73,24 @@ export default function ChatInterface() {
                 // Stay on conversation tab, which will now show the chat
             } else {
                 console.error('Failed to submit lead');
+                setLeadError('Failed to start chat. Please try again.');
             }
         } catch (error) {
             console.error('Error submitting lead:', error);
+            setLeadError('An error occurred. Please check your connection.');
         } finally {
             setIsSubmittingLead(false);
         }
     };
 
+    const quickQuestions = [
+        "Transport from Airports (ORD/MDW)",
+        "Book Healthcare Consultation",
+        "Luggage Storage & Showers",
+        "Wellness Tips & Healthy Food",
+        "Chicago Sightseeing Guide",
+        "View All Services & Pricing"
+    ];
     const toggleQuestion = (id: number) => {
         setOpenQuestionId(openQuestionId === id ? null : id);
     };
@@ -202,6 +215,11 @@ export default function ChatInterface() {
                                 <p className="text-sm text-gray-500 mt-1">Please fill in your details to start chatting.</p>
                             </div>
                             <form onSubmit={handleLeadSubmit} className="space-y-4">
+                                {leadError && (
+                                    <div className="bg-red-50 text-red-500 text-xs p-3 rounded-lg border border-red-100">
+                                        {leadError}
+                                    </div>
+                                )}
                                 <div className="space-y-1">
                                     <label className="text-xs font-medium text-gray-700 ml-1">Name</label>
                                     <div className="relative">
@@ -427,16 +445,15 @@ export default function ChatInterface() {
             {!isOpen && (
                 <button
                     onClick={() => setIsOpen(true)}
-                    className="bg-white text-gray-800 px-6 py-4 rounded-2xl shadow-lg hover:shadow-xl border border-gray-100 transition-all duration-300 flex items-center justify-between w-[300px] group mb-16 mr-2"
+                    className="bg-transparent hover:scale-110 transition-transform duration-300 shadow-xl rounded-full mb-10 mr-4"
                 >
-                    <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-scriptish-teal/10 rounded-full flex items-center justify-center text-scriptish-teal">
-                            <MessageSquare size={20} />
-                        </div>
-                        <span className="font-medium text-sm">Chat with us now</span>
-                    </div>
-                    <div className="text-gray-400 group-hover:translate-x-1 transition-transform">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    <div className="w-16 h-16 relative">
+                        <Image
+                            src="/chat-icon.png"
+                            alt="Chat with us"
+                            fill
+                            className="object-contain"
+                        />
                     </div>
                 </button>
             )}

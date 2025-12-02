@@ -15,6 +15,16 @@ const faqs = [
     keywords: ['work', 'desk', 'office', 'pricing', 'cost', 'how much']
   },
   {
+    question: "Shower Suites Pricing",
+    answer: "Shower Suites are $24.99 per session. Enjoy premium toiletries, fluffy towels, and a private space to freshen up.",
+    keywords: ['shower', 'suite', 'pricing', 'cost', 'how much']
+  },
+  {
+    question: "Healthcare Consultation",
+    answer: "You can book a healthcare consultation by emailing info@scriptishrx.com. Our professionals will respond within 24 hours.",
+    keywords: ['consultation', 'healthcare', 'appointment', 'book']
+  },
+  {
     question: "WiFi Amenities",
     answer: "Yes, we offer high-speed WiFi in our Wellness Lounge and Hourly Workspaces.",
     keywords: ['wifi', 'internet']
@@ -39,27 +49,17 @@ const faqs = [
 const ragService = {
   async query(userMessage) {
     const lowerMsg = userMessage.toLowerCase();
-
-    // Simple keyword matching against structured data
-    // In a real DB scenario, this would be a vector search or SQL ILIKE query
-    const match = faqs.find(faq => {
-      // Check if all keywords in a subset match (simplified logic for now)
-      // Better: Check if the message contains specific unique keywords for that FAQ
-      return faq.keywords.some(keyword => lowerMsg.includes(keyword));
-    });
-
+    const match = faqs.find(faq => faq.keywords.some(keyword => lowerMsg.includes(keyword)));
     if (match) {
-      // Refine matching for pricing to distinguish between services if multiple match 'pricing'
       if (lowerMsg.includes('pricing') || lowerMsg.includes('cost')) {
         if (lowerMsg.includes('lounge')) return faqs.find(f => f.question === "Wellness Lounge Pricing").answer;
         if (lowerMsg.includes('luggage')) return faqs.find(f => f.question === "Luggage Storage Pricing").answer;
         if (lowerMsg.includes('work')) return faqs.find(f => f.question === "Hourly Workspace Pricing").answer;
-
-        return "Here is our pricing:\n- Luggage Storage: $4.99/hour\n- Wellness Lounge: $49.99/2 hours\n- Hourly Workspace: $24.99/hour";
+        if (lowerMsg.includes('shower')) return faqs.find(f => f.question === "Shower Suites Pricing").answer;
+        return "Here is our pricing:\n- Luggage Storage: $4.99/hour\n- Wellness Lounge: $49.99/2 hours\n- Hourly Workspace: $24.99/hour\n- Shower Suites: $24.99/session";
       }
       return match.answer;
     }
-
     return null;
   }
 };

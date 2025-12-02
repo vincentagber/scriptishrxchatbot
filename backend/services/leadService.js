@@ -11,7 +11,7 @@ const leadService = {
         console.log('✅ Lead captured and stored in Supabase');
 
         // Send to Make.com Webhook
-        const webhookUrl = process.env.MAKE_WEBHOOK_URL;
+        const webhookUrl = process.env.MAKE_WEBHOOK_URL || process.env.PUBLIC_MAKE_WEBHOOK_URL;
         if (webhookUrl && webhookUrl.startsWith('http')) {
             try {
                 fetch(webhookUrl, {
