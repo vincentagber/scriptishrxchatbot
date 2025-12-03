@@ -4,10 +4,10 @@ const ctaService = {
 
         if (lowerMsg.includes('airport') || lowerMsg.includes('ord') || lowerMsg.includes('mdw') || lowerMsg.includes('o\'hare') || lowerMsg.includes('midway')) {
             if (lowerMsg.includes('ord') || lowerMsg.includes('o\'hare')) {
-                return "From O'Hare (ORD): Take the Blue Line train from the lower-level concourse towards Forest Park. Ride for about 40-45 minutes and get off at the Washington/Wabash station. From there, it's just a short walk to our office at 111 N Wabash Ave (The Garland Building).";
+                return "If you arrive at O'Hare International Airport (ORD):\n\n- Take the CTA Blue Line from O’Hare station (lower-level concourse).\n- Ride about 40–45 minutes to downtown.\n- Get off at Washington/Wabash station.\n- Walk to 111 N Wabash Ave, which is a short distance from the station.\n\nBackup Options:\n\n- Taxi or rideshare directly to 111 N Wabash Ave\n- Airport shuttle or private car service, especially for late-night arrivals or heavy luggage";
             }
             if (lowerMsg.includes('mdw') || lowerMsg.includes('midway')) {
-                return "From Midway (MDW): Take the Orange Line train from the station just east of the terminals towards the Loop. It's about a 20-25 minute ride. Get off at the Washington/Wabash station, and you'll be just steps away from 111 N Wabash Ave.";
+                return "If you arrive at Midway International Airport (MDW):\n\n- Take the CTA Orange Line toward downtown.\n- Ride about 20–25 minutes.\n- Get off at Washington/Wabash or any nearby Loop station.\n- Walk to 111 N Wabash Ave.\n\nBackup Options:\n\n- Taxi or rideshare directly to 111 N Wabash Ave";
             }
             return "Are you coming from O'Hare (ORD) or Midway (MDW)? I can give you specific train directions to our downtown office for either one!";
         }

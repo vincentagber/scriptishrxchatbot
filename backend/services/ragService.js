@@ -1,73 +1,44 @@
 const faqs = [
   {
-    question: "Wellness Lounge Pricing",
-    answer: "Our Wellness Lounge is the perfect place to relax and recharge! It's $49.99 for a 2-hour pass. This includes access to comfortable seating, complimentary refreshments, high-speed WiFi, and charging stations for all your devices. Would you like to book a spot?",
-    keywords: ['lounge', 'wellness', 'pricing', 'cost', 'how much', 'relax']
-  },
-  {
-    question: "Luggage Storage Pricing",
-    answer: "Need to lighten your load? Our Luggage Drop Off service is safe and secure for just $4.99 per hour per bag. It's a great way to explore the city burden-free!",
-    keywords: ['luggage', 'storage', 'bag', 'pricing', 'cost', 'how much', 'drop off']
-  },
-  {
-    question: "Hourly Workspace Pricing",
-    answer: "Looking for a quiet place to be productive? Our Hourly Workspace is available for $24.99 per hour. You'll get a private desk, fast WiFi, and plenty of power outlets to keep you going.",
-    keywords: ['work', 'desk', 'office', 'pricing', 'cost', 'how much', 'workspace']
-  },
-  {
-    question: "Shower Suites Pricing",
-    answer: "Freshen up with our Shower Suites for $24.99 per session. We provide premium toiletries, fluffy towels, and a private space for you to get ready for your next adventure.",
-    keywords: ['shower', 'suite', 'pricing', 'cost', 'how much', 'clean']
-  },
-  {
-    question: "Booking & Contact",
-    answer: "I'd be happy to help you with that! To book an appointment or consultation, you can email us directly at info@scriptishrx.com or give us a call at +1 (872) 873-2880. We'll get you scheduled right away!",
-    keywords: ['book', 'appointment', 'consultation', 'contact', 'email', 'phone', 'schedule']
+    question: "Services & Pricing",
+    answer: "Here’s a simple overview of our main services and their prices:\n\n**Wellness Lounge — $49.99 for 2 hours**\nRelax, enjoy refreshments, use fast WiFi, and charge your devices in a comfortable travel-friendly space.\n\n**Luggage Drop-Off — $4.99 per hour**\nSafe and secure short-term luggage storage so you can explore Chicago hands-free.\n\n**Hourly Workspace — $24.99 per hour**\nA quiet private desk with fast WiFi, charging ports, and a productive work environment.\n\nIf you’d like to book any of these services or need more details, just let me know — I’m here to help!",
+    keywords: ['services', 'pricing', 'cost', 'how much', 'lounge', 'luggage', 'workspace', 'storage', 'work']
   },
   {
     question: "Location & Address",
-    answer: "We are located in the heart of downtown Chicago at 111 N Wabash Ave, Chicago, IL 60602, inside The Garland Building. It's a convenient spot near Millennium Park!",
-    keywords: ['location', 'address', 'where', 'located', 'find']
+    answer: "Our office is located at 111 N Wabash Ave, Chicago, IL 60602, inside the Garland Building in downtown Chicago.\n\nFor public transit:\n\n- Millennium Station is about a 3-minute walk\n- Washington/Wabash L-station is about a 6-minute walk\n\nIf you’re driving, there are several parking garages nearby. I can also provide walking or transit directions from any location — just let me know!",
+    keywords: ['location', 'address', 'where', 'office', 'parking']
   },
   {
-    question: "Mission & Training",
-    answer: "At ScriptishRx Wellness and Travel, our mission is to support travelers with wellness tips, guidance, and a physical space to relax. While we don't offer formal training courses at this time, we do provide personal wellness consultations and real-time travel advisories. If you're interested in future workshops on wellness or travel safety, let me know, and I can have a consultant reach out!",
-    keywords: ['mission', 'about', 'training', 'course', 'education', 'workshop', 'class']
+    question: "Booking & Contact",
+    answer: "To book an appointment, you can email us at info@scriptishrx.com or call +1 (872) 873-2880.\nWe’ll be happy to assist you with scheduling.",
+    keywords: ['book', 'appointment', 'consultation', 'contact', 'email', 'phone', 'schedule']
   },
   {
-    question: "General Wellness Tips",
-    answer: "Staying healthy while traveling is key! Based on our travel wellness guide, here are a few tips:\n1. **Pack a Wellness Kit**: Include pain relievers, digestive aids, and any personal meds.\n2. **Stay Hydrated**: Drink plenty of water, especially on flights.\n3. **Move Often**: Stretch your legs every hour to keep circulation flowing.\n4. **Mindfulness**: Take a few minutes to breathe and ground yourself if travel gets stressful.\nWould you like more specific advice on packing or jet lag?",
-    keywords: ['wellness', 'tips', 'health', 'advice', 'healthy', 'kit', 'pack']
+    question: "Training & Courses",
+    answer: "At this time, we focus mainly on providing wellness and travel support rather than formal training courses.\nHowever, we do offer:\n\n- Wellness tips\n- Travel guidance\n- Real-time travel advisories\n- Personal wellness consultations\n\nIf you're interested in future workshops or training programs, I’d be happy to note your interest and connect you with a consultant who can provide more information.",
+    keywords: ['training', 'course', 'class', 'workshop', 'education']
   },
   {
-    question: "Workspace Wellness",
-    answer: "Creating a healthy workspace is so important! Here are some tips from our blog:\n- **Ergonomics**: Ensure your screen is at eye level and your chair supports your back.\n- **Lighting**: Natural light is best, but if that's not possible, try to avoid harsh glare.\n- **Digital Boundaries**: Use blue light filters and try to set specific times for checking notifications to reduce stress.\nWe also offer comfortable Hourly Workspaces if you need a change of scenery!",
-    keywords: ['workspace', 'work', 'ergonomics', 'lighting', 'digital', 'office', 'productivity']
+    question: "Company Overview",
+    answer: "Thank you for your interest! At ScriptishRx Wellness and Travel, we provide a range of wellness services designed especially for travelers.\n\nOur main services include:\n\n- A Wellness Lounge where you can relax and recharge\n- Secure luggage drop-off\n- Hourly workspaces for quiet, productive work\n\nThe Wellness Lounge offers refreshments, WiFi, charging stations, and comfortable seating. Our luggage storage is safe and convenient, and our workspaces are fully equipped to keep you productive. If you’d like more details, I’d be happy to help!",
+    keywords: ['what do you do', 'about', 'mission', 'scriptishrx', 'who are you']
   },
   {
-    question: "Travel Health & Insurance",
-    answer: "Preparing for the unexpected is smart. We recommend:\n- **Travel Insurance**: It's a safety net for medical emergencies or cancellations.\n- **Local Healthcare**: Know where the nearest clinic or hospital is at your destination.\n- **Wellness Preferences**: You can set your wellness preferences with us to get personalized advice!\nSafe travels are happy travels!",
-    keywords: ['insurance', 'safety', 'medical', 'emergency', 'healthcare', 'prepare']
+    question: "Wellness Tips & Guidance",
+    answer: "We provide wellness tips and travel guidance to help you stay healthy and informed during your journey. Our team can offer:\n\n- Personal wellness consultations\n- Real-time travel advisories\n- Health and safety recommendations\n- Best practices for travel wellness\n\nIf you need tips tailored to your situation or destination, feel free to ask!",
+    keywords: ['wellness tips', 'travel guidance', 'health', 'advice', 'safety']
+  },
+  {
+    question: "Future Programs",
+    answer: "While our current focus is wellness and travel support, we’re always exploring new offerings. If you're interested in:\n\n- Wellness workshops\n- Travel safety programs\n- Health awareness sessions\n\nLet me know! I can connect you with a consultant or note your interest for future programs.",
+    keywords: ['future', 'program', 'coming soon']
   }
 ];
 
 const ragService = {
   async query(userMessage) {
     const lowerMsg = userMessage.toLowerCase();
-
-    // Check for specific service pricing queries first
-    if (lowerMsg.includes('price') || lowerMsg.includes('cost') || lowerMsg.includes('how much')) {
-      if (lowerMsg.includes('lounge')) return faqs.find(f => f.question === 'Wellness Lounge Pricing').answer;
-      if (lowerMsg.includes('luggage') || lowerMsg.includes('bag') || lowerMsg.includes('storage')) return faqs.find(f => f.question === 'Luggage Storage Pricing').answer;
-      if (lowerMsg.includes('work') || lowerMsg.includes('desk')) return faqs.find(f => f.question === 'Hourly Workspace Pricing').answer;
-      if (lowerMsg.includes('shower')) return faqs.find(f => f.question === 'Shower Suites Pricing').answer;
-    }
-
-    // Check for advice/tips queries
-    if (lowerMsg.includes('tip') || lowerMsg.includes('advice') || lowerMsg.includes('healthy') || lowerMsg.includes('wellness')) {
-      if (lowerMsg.includes('work') || lowerMsg.includes('office') || lowerMsg.includes('ergonomics')) return faqs.find(f => f.question === 'Workspace Wellness').answer;
-      if (lowerMsg.includes('travel') || lowerMsg.includes('trip')) return faqs.find(f => f.question === 'Travel Health & Insurance').answer;
-    }
 
     // General keyword matching
     for (const faq of faqs) {

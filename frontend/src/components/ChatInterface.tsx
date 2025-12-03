@@ -230,7 +230,7 @@ export default function ChatInterface() {
                                             placeholder="Your Name"
                                             value={leadForm.name}
                                             onChange={(e) => setLeadForm({ ...leadForm, name: e.target.value })}
-                                            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-scriptish-purple focus:ring-1 focus:ring-scriptish-purple outline-none transition-all"
+                                            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 focus:border-scriptish-purple focus:ring-1 focus:ring-scriptish-purple outline-none transition-all"
                                         />
                                     </div>
                                 </div>
@@ -244,7 +244,7 @@ export default function ChatInterface() {
                                             placeholder="name@example.com"
                                             value={leadForm.email}
                                             onChange={(e) => setLeadForm({ ...leadForm, email: e.target.value })}
-                                            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-scriptish-purple focus:ring-1 focus:ring-scriptish-purple outline-none transition-all"
+                                            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 focus:border-scriptish-purple focus:ring-1 focus:ring-scriptish-purple outline-none transition-all"
                                         />
                                     </div>
                                 </div>
@@ -258,7 +258,7 @@ export default function ChatInterface() {
                                             placeholder="+1 (555) 000-0000"
                                             value={leadForm.phone}
                                             onChange={(e) => setLeadForm({ ...leadForm, phone: e.target.value })}
-                                            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-scriptish-purple focus:ring-1 focus:ring-scriptish-purple outline-none transition-all"
+                                            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 focus:border-scriptish-purple focus:ring-1 focus:ring-scriptish-purple outline-none transition-all"
                                         />
                                     </div>
                                 </div>
