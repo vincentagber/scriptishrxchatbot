@@ -28,7 +28,7 @@ export const Hero = () => {
                             className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-slate-200 shadow-sm text-sm font-medium text-primary-start"
                         >
                             <Star className="w-4 h-4 fill-primary-start" />
-                            <span>#1 Healthcare CRM Platform</span>
+                            <span>#1 AI Business Operations Platform</span>
                         </motion.div>
 
                         <motion.h1
@@ -39,7 +39,7 @@ export const Hero = () => {
                         >
                             Make The Best <br />
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-start to-primary-end">
-                                Patient Decisions
+                                Business Decisions
                             </span>
                         </motion.h1>
 
@@ -49,8 +49,8 @@ export const Hero = () => {
                             transition={{ duration: 0.8, delay: 0.2 }}
                             className="text-xl text-slate-600 max-w-lg mx-auto lg:mx-0 leading-relaxed"
                         >
-                            Streamline your clinic's operations with our AI-powered concierge.
-                            Booking, management, and patient care—all in one place.
+                            Streamline your business operations with our AI-powered concierge.
+                            Booking, CRM, and client management—all in one place.
                         </motion.p>
 
                         <motion.div
@@ -78,9 +78,9 @@ export const Hero = () => {
                             className="pt-8 flex items-center justify-center lg:justify-start gap-8 grayscale opacity-60"
                         >
                             {/* Trusted by Logos (Text for now) */}
-                            <span className="font-bold text-slate-400 text-lg">Cleveland Clinic</span>
-                            <span className="font-bold text-slate-400 text-lg">Mayo Clinic</span>
-                            <span className="font-bold text-slate-400 text-lg">Kaiser</span>
+                            <span className="font-bold text-slate-400 text-lg">TechFlow</span>
+                            <span className="font-bold text-slate-400 text-lg">GlobalScale</span>
+                            <span className="font-bold text-slate-400 text-lg">NexusCorp</span>
                         </motion.div>
                     </div>
 
@@ -143,8 +143,8 @@ export const Hero = () => {
                                         <div className="w-8 h-8 rounded-full bg-slate-100" />
                                     </div>
                                     <div className="space-y-2">
-                                        <div className="text-2xl font-bold text-slate-900">Hello, Dr. Smith</div>
-                                        <div className="text-sm text-slate-500">You have 5 new patients today</div>
+                                        <div className="text-2xl font-bold text-slate-900">Hello, Alex</div>
+                                        <div className="text-sm text-slate-500">You have 5 new leads today</div>
                                     </div>
                                 </div>
 
@@ -155,7 +155,7 @@ export const Hero = () => {
                                             <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold">JD</div>
                                             <div>
                                                 <div className="font-bold text-slate-900">John Doe</div>
-                                                <div className="text-xs text-slate-500">10:00 AM • Check-up</div>
+                                                <div className="text-xs text-slate-500">10:00 AM • Consult</div>
                                             </div>
                                         </div>
                                     </div>

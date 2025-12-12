@@ -7,21 +7,21 @@ import { cn } from '@/lib/utils';
 
 const plans = [
     {
-        name: "Basic",
+        name: "Startup",
         price: "99.99",
-        features: ["Voice Agent Access", "50 Bookings/mo", "Basic Analytics"],
+        features: ["Voice Agent Access", "50 Client Bookings/mo", "Basic Analytics"],
         popular: false
     },
     {
-        name: "Intermediate",
+        name: "Growth",
         price: "149.99",
-        features: ["Everything in Basic", "Unlimited Bookings", "Advanced Analytics", "Priority Support"],
+        features: ["Everything in Startup", "Unlimited Bookings", "Advanced Analytics", "Priority Support"],
         popular: true
     },
     {
-        name: "Advanced",
+        name: "Enterprise",
         price: "249.99",
-        features: ["Dedicated Agent", "HIPAA Compliance", "White Labeling"],
+        features: ["Dedicated Account Manager", "SOC2 Compliance", "White Labeling"],
         popular: false
     }
 ];

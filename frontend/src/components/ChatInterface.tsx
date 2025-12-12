@@ -137,7 +137,7 @@ export default function ChatInterface({ tenantId: propTenantId, token, isDashboa
             const errorMsg: Message = {
                 id: `error_${Date.now()}`,
                 role: 'assistant',
-                content: 'Sorry, I encountered an error processing your message. Please try again.',
+                content: 'Hello! I am your AI Business Concierge. I can help with bookings, client management, or analytics. How can I assist you today?',
                 timestamp: new Date().toISOString(),
                 error: true
             };

@@ -25,7 +25,7 @@ import { cn } from '@/lib/utils';
 export const TrustedBy = () => (
     <section className="py-16 bg-white border-b border-slate-100/50">
         <div className="container mx-auto px-4 text-center">
-            <p className="text-sm font-medium text-slate-400 mb-12 uppercase tracking-[0.2em]">Trusted by verified healthcare providers</p>
+            <p className="text-sm font-medium text-slate-400 mb-12 uppercase tracking-[0.2em]">Trusted by verified business leaders</p>
 
             <div className="relative w-full overflow-hidden">
                 {/* Gradient Masks for fade effect */}
@@ -37,7 +37,7 @@ export const TrustedBy = () => (
                     {/* Double the list for infinite scroll illusion */}
                     {[...Array(2)].map((_, i) => (
                         <React.Fragment key={i}>
-                            {['Cleveland Clinic', 'Mayo Clinic', 'Kaiser Permanente', 'Mount Sinai', 'Johns Hopkins', 'Providence'].map((brand, idx) => (
+                            {['TechFlow', 'GlobalScale', 'NexusCorp', 'InnovateX', 'PrimeSystems', 'Vertex Solutions'].map((brand, idx) => (
                                 <span key={`${i}-${idx}`} className="text-2xl font-bold text-slate-800 tracking-tight hover:text-primary-start transition-colors cursor-default">
                                     {brand}
                                 </span>
@@ -78,23 +78,23 @@ export const FeatureSteps = () => (
             <div className="grid md:grid-cols-3 gap-12 relative">
                 {[
                     {
-                        title: "Download App",
-                        desc: "Get the app from the App Store or Play Store instantly.",
-                        icon: Smartphone,
+                        title: "Sign Up",
+                        desc: "Get started instantly by creating your business profile.",
+                        icon: Users,
                         color: "bg-pink-100 text-pink-600",
                         step: "01"
                     },
                     {
-                        title: "Create Account",
-                        desc: "Sign up and complete your secure profile in seconds.",
-                        icon: Users,
+                        title: "Setup Workflow",
+                        desc: "Customize your AI agents and automation rules.",
+                        icon: Zap,
                         color: "bg-purple-100 text-purple-600",
                         step: "02"
                     },
                     {
-                        title: "Start App & Enjoy",
-                        desc: "Experience the future of healthcare management immediately.",
-                        icon: Zap,
+                        title: "Scale Business",
+                        desc: "Let AI handle operations while you focus on growth.",
+                        icon: BarChart3,
                         color: "bg-indigo-100 text-indigo-600",
                         step: "03"
                     }
@@ -165,8 +165,8 @@ export const FeatureShowcase = () => (
                 </div>
                 <div className="w-full md:w-1/2 space-y-6 text-center md:text-left">
                     <span className="text-primary-start font-bold tracking-wider text-sm">ANALYTICS</span>
-                    <h2 className="text-3xl md:text-4xl font-bold text-slate-900 leading-tight">Easy Analytics & Reporting <br /> Breakdown It</h2>
-                    <p className="text-slate-600 text-lg">Analyze your clinic's performance with intuitive dashboards. Track patient growth, revenue, and satisfaction in real-time.</p>
+                    <h2 className="text-3xl md:text-4xl font-bold text-slate-900 leading-tight">Insightful Business Metrics <br /> At A Glance</h2>
+                    <p className="text-slate-600 text-lg">Analyze your company's performance with intuitive dashboards. Track client growth, revenue, and satisfaction in real-time.</p>
                     <ul className="space-y-3 inline-block md:block text-left">
                         {['Real-time Data Updates', 'Exportable Reports (PDF/CSV)', 'Custom Visualizations'].map((item, i) => (
                             <li key={i} className="flex items-center gap-3">
@@ -217,8 +217,8 @@ export const FeatureShowcase = () => (
                 </div>
                 <div className="w-full md:w-1/2 space-y-6 text-center md:text-left">
                     <span className="text-purple-600 font-bold tracking-wider text-sm">NOTIFICATIONS</span>
-                    <h2 className="text-3xl md:text-4xl font-bold text-slate-900 leading-tight">Get The Highest Priority <br /> Application Notification</h2>
-                    <p className="text-slate-600 text-lg">Never miss a critical update. Smart notifications ensure you are always in the loop with what matters most to your practice.</p>
+                    <h2 className="text-3xl md:text-4xl font-bold text-slate-900 leading-tight">Never Miss A <br /> Client Opportunity</h2>
+                    <p className="text-slate-600 text-lg">Stay updated with critical business alerts. Smart notifications ensure you are always in the loop with what matters most to your company.</p>
                     <ul className="space-y-3 inline-block md:block text-left">
                         {['Instant Push Alerts', 'Customizable Channels', 'Urgency Filters'].map((item, i) => (
                             <li key={i} className="flex items-center gap-3">
@@ -278,10 +278,10 @@ export const StatsBanner = () => {
             <div className="container mx-auto px-4">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center md:divide-x divide-white/20">
                     {[
-                        { label: "Active Users", value: stats.activeUsers },
-                        { label: "Downloads", value: stats.downloads },
-                        { label: "Appointments", value: stats.appointments },
-                        { label: "Satisfied Clients", value: stats.satisfaction }
+                        { label: "Active Businesses", value: stats.activeUsers },
+                        { label: "Transactions", value: stats.downloads },
+                        { label: "Client Bookings", value: stats.appointments },
+                        { label: "Customer Satisfaction", value: stats.satisfaction }
                     ].map((stat, i) => (
                         <div key={i} className="text-white p-2">
                             <div className="text-3xl md:text-5xl font-bold mb-2">{stat.value}</div>
@@ -298,13 +298,13 @@ export const StatsBanner = () => {
 export const AppBenefits = () => (
     <section className="py-16 md:py-24 bg-white">
         <div className="container mx-auto px-4 text-center">
-            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-12 md:mb-16">The Most Intuitive App For <br className="hidden md:block" /> Your Needs</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-12 md:mb-16">The Ultimate Platform For <br className="hidden md:block" /> Scaling Your Business</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[
                     { title: "User Friendly", desc: "Designed for simplicity and ease of use.", bg: "bg-purple-50", icon: Users, iconColor: "text-purple-600" },
-                    { title: "Secure Data", desc: "End-to-end encryption for all patient records.", bg: "bg-orange-50", icon: Shield, iconColor: "text-orange-600" },
-                    { title: "24/7 Support", desc: "Always here to help you when you need it.", bg: "bg-green-50", icon: Zap, iconColor: "text-green-600" },
-                    { title: "Multi-Platform", desc: "Access from any device, anywhere, anytime.", bg: "bg-pink-50", icon: Smartphone, iconColor: "text-pink-600" }
+                    { title: "Enterprise Security", desc: "SOC2 Type II compliant & encrypted data storage.", bg: "bg-orange-50", icon: Shield, iconColor: "text-orange-600" },
+                    { title: "24/7 Support", desc: "Dedicated support team always ready to help.", bg: "bg-green-50", icon: Zap, iconColor: "text-green-600" },
+                    { title: "White Labeling", desc: "Customize the platform with your own brand.", bg: "bg-pink-50", icon: Smartphone, iconColor: "text-pink-600" }
                 ].map((item, i) => (
                     <div key={i} className={cn("p-8 rounded-3xl transition-all hover:scale-105 cursor-pointer", item.bg)}>
                         <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-sm mx-auto mb-6">
@@ -323,10 +323,10 @@ export const AppBenefits = () => (
 export const FAQ = () => {
     const [openIndex, setOpenIndex] = useState<number | null>(0);
     const faqs = [
-        { q: "How long does the free trial last?", a: "Unless you cancel, the free trial lasts for 14 days. You can access all premium features during this period." },
-        { q: "Can I change my plan later?", a: "Yes, you can upgrade or downgrade your plan at any time from the account settings." },
-        { q: "Is my data secure?", a: "Absolutely. We use industry-standard encryption and follow all HIPAA guidelines to ensure your data is always safe." },
-        { q: "Do you offer customer support?", a: "Yes, we offer 24/7 customer support via email and chat for all our users." }
+        { q: "How long does the free trial last?", a: "Unless you cancel, the free trial lasts for 14 days. You can access all premium business features during this period." },
+        { q: "Can I customize the branding?", a: "Yes, our White Labeling feature allows you to apply your own logo and colors to the client-facing portal." },
+        { q: "Is my business data secure?", a: "Absolutely. We are SOC2 Type II compliant and use enterprise-grade encryption to ensure your data is always safe." },
+        { q: "Do you offer priority support?", a: "Yes, our enterprise plans include a dedicated account manager and 24/7 priority support." }
     ];
 
     return (
@@ -382,7 +382,7 @@ export const Testimonials = () => (
             <div className="bg-slate-50 p-8 md:p-12 rounded-[2.5rem] max-w-4xl mx-auto relative mx-4 md:mx-auto">
                 <div className="text-4xl text-primary-start absolute top-6 left-6 md:top-8 md:left-8 opacity-50 md:opacity-100">"</div>
                 <p className="text-lg md:text-2xl text-slate-700 italic font-medium leading-relaxed mb-8 relative z-10 px-2">
-                    "ScriptishRx has completely transformed how we manage our clinic. The AI capabilities are unmatched, and the patient feedback has been incredible. Highly recommended!"
+                    "ScriptishRx has completely transformed how we manage our business. The AI capabilities are unmatched, and client feedback has been incredible. Highly recommended!"
                 </p>
                 <div className="flex flex-col items-center gap-2">
                     <div className="w-16 h-16 bg-slate-300 rounded-full overflow-hidden shadow-md">
@@ -390,7 +390,7 @@ export const Testimonials = () => (
                         <img src="https://i.pravatar.cc/150?u=alice" alt="Client" className="w-full h-full object-cover" />
                     </div>
                     <div className="font-bold text-slate-900 text-lg">Alice Hernandez</div>
-                    <div className="text-sm text-slate-500 font-medium">Clinic Director</div>
+                    <div className="text-sm text-slate-500 font-medium">CEO, TechStart Inc.</div>
                 </div>
             </div>
         </div>
@@ -408,8 +408,8 @@ export const CTA = () => (
             </div>
 
             <div className="relative z-10 max-w-3xl mx-auto space-y-8">
-                <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight">Download Our App And Start Your Free Trial!</h2>
-                <p className="text-slate-400 text-base md:text-lg max-w-xl mx-auto">Join thousands of clinics optimizing their workflow with ScriptishRx.</p>
+                <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight">Start Scaling Your Business Today!</h2>
+                <p className="text-slate-400 text-base md:text-lg max-w-xl mx-auto">Join thousands of companies optimizing their workflow with ScriptishRx.</p>
                 <div className="flex flex-col sm:flex-row justify-center gap-4 pt-4">
                     <Button className="h-14 px-8 rounded-full bg-white text-slate-900 hover:bg-slate-100 flex items-center justify-center gap-2 w-full sm:w-auto text-lg transition-transform hover:scale-105">
                         <Smartphone className="w-5 h-5" /> App Store
@@ -473,7 +473,7 @@ export const Newsletter = () => {
                                 Subscribe to our newsletter
                             </h2>
                             <p className="text-slate-500 text-base md:text-lg leading-relaxed">
-                                Get exclusive insights on healthcare management, AI trends, and platform updates delivered to your inbox.
+                                Get exclusive insights on business automation, AI trends, and platform updates delivered to your inbox.
                             </p>
                         </div>
 
@@ -528,7 +528,7 @@ export const Footer = () => (
                         <span className="text-xl font-bold">ScriptishRx</span>
                     </div>
                     <p className="text-slate-400 leading-relaxed max-w-sm">
-                        The #1 AI-powered healthcare concierge platform for modern clinics.
+                        The #1 AI-powered business concierge platform for modern enterprises.
                     </p>
                     <div className="flex gap-4">
                         {[Twitter, Facebook, Instagram, Linkedin].map((Icon, i) => (
