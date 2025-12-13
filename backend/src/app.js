@@ -272,7 +272,8 @@ if (fs.existsSync(publicPath)) {
     app.use(express.static(publicPath));
 
     // SPA Fallback: Serve index.html for any unknown route that isn't /api
-    app.get('*', (req, res, next) => {
+    // Note: Using (.*) for wildcard compatibility with newer Express routers
+    app.get(/(.*)/, (req, res, next) => {
         if (req.path.startsWith('/api') || req.path.startsWith('/media-stream')) return next();
         res.sendFile(path.join(publicPath, 'index.html'));
     });
