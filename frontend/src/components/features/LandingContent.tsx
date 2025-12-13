@@ -16,7 +16,8 @@ import {
     Twitter,
     Facebook,
     Instagram,
-    Linkedin
+    Linkedin,
+    X
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
@@ -518,72 +519,144 @@ export const Newsletter = () => {
 };
 
 // --- Footer ---
-export const Footer = () => (
-    <footer id="contact" className="bg-slate-900 text-white py-12 md:py-20 border-t border-slate-800">
-        <div className="container mx-auto px-4">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12 mb-12 md:mb-16">
-                <div className="col-span-2 lg:col-span-1 space-y-6">
-                    <div className="flex items-center gap-2 mb-4">
-                        <img src="/logo.jpg" alt="ScriptishRx Logo" className="h-16 w-auto object-contain brightness-0 invert" />
-                    </div>
-                    <p className="text-slate-400 leading-relaxed max-w-sm">
-                        The #1 AI-powered business concierge platform for modern enterprises.
-                    </p>
-                    <div className="flex gap-4">
-                        {[Twitter, Facebook, Instagram, Linkedin].map((Icon, i) => (
-                            <a key={i} href="#" className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:bg-primary-start hover:text-white transition-colors">
-                                <Icon className="w-5 h-5" />
-                            </a>
-                        ))}
-                    </div>
-                </div>
+// --- Footer ---
+export const Footer = () => {
+    const [activeModal, setActiveModal] = useState<string | null>(null);
 
-                <div>
-                    <h4 className="font-bold mb-6 text-lg">Product</h4>
-                    <ul className="space-y-4 text-slate-400">
-                        <li><a href="#" className="hover:text-white transition-colors">Features</a></li>
-                        <li><a href="#" className="hover:text-white transition-colors">Pricing</a></li>
-                        <li><a href="#" className="hover:text-white transition-colors">Case Studies</a></li>
-                        <li><a href="#" className="hover:text-white transition-colors">Reviews</a></li>
-                    </ul>
+    const Modal = ({ title, children, onClose }: { title: string, children: React.ReactNode, onClose: () => void }) => (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose}>
+            <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[85vh] overflow-y-auto p-8 shadow-2xl relative animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-slate-100 rounded-full transition-colors">
+                    <X className="w-6 h-6 text-slate-400" />
+                </button>
+                <div className="mb-6">
+                    <h3 className="text-2xl font-bold text-slate-900">{title}</h3>
+                    <div className="h-1 w-20 bg-primary-start mt-4 rounded-full" />
                 </div>
-
-                <div>
-                    <h4 className="font-bold mb-6 text-lg">Company</h4>
-                    <ul className="space-y-4 text-slate-400">
-                        <li><a href="#" className="hover:text-white transition-colors">About Us</a></li>
-                        <li><a href="#" className="hover:text-white transition-colors">Careers</a></li>
-                        <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
-                        <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
-                    </ul>
+                <div className="prose prose-slate max-w-none text-slate-600 space-y-4 leading-relaxed">
+                    {children}
                 </div>
-
-                <div className="col-span-2 lg:col-span-1">
-                    <h4 className="font-bold mb-6 text-lg">Contact</h4>
-                    <ul className="space-y-4 text-slate-400">
-                        <li className="flex items-start gap-3">
-                            <span className="opacity-70">Email:</span>
-                            <span className="text-white">support@scriptishrx.com</span>
-                        </li>
-                        <li className="flex items-start gap-3">
-                            <span className="opacity-70">Phone:</span>
-                            <span className="text-white">+1 (888) 123-4567</span>
-                        </li>
-                        <li className="flex items-start gap-3">
-                            <span className="opacity-70">Addr:</span>
-                            <span className="text-white">123 Innovation Ave, Tech City, CA</span>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-            <div className="pt-8 border-t border-slate-800 text-center text-slate-500 text-sm flex flex-col md:flex-row justify-between items-center gap-4">
-                <span>© {new Date().getFullYear()} ScriptishRx. All rights reserved.</span>
-                <div className="flex gap-6">
-                    <a href="#" className="hover:text-white">Privacy</a>
-                    <a href="#" className="hover:text-white">Terms</a>
-                    <a href="#" className="hover:text-white">Sitemap</a>
+                <div className="mt-8 pt-6 border-t border-slate-100 flex justify-end">
+                    <Button onClick={onClose} variant="outline">Close</Button>
                 </div>
             </div>
         </div>
-    </footer>
-);
+    );
+
+    return (
+        <footer id="contact" className="bg-slate-900 text-white py-12 md:py-20 border-t border-slate-800 relative">
+            {activeModal === 'privacy' && (
+                <Modal title="Privacy Policy & Terms" onClose={() => setActiveModal(null)}>
+                    <h4 className="font-bold text-slate-900 text-lg">1. Privacy Policy</h4>
+                    <p>At ScriptishRx, we take your privacy seriously. We collect minimal data necessary to provide our services, including business metrics and user preferences. Your data is encrypted and stored securely using SOC2 Type II compliant standards.</p>
+                    <p>We do not sell your personal data to third parties. We use trusted third-party processors (like Stripe for payments and OpenAI for AI features) solely to deliver our core services.</p>
+
+                    <h4 className="font-bold text-slate-900 text-lg mt-6">2. Terms of Service</h4>
+                    <p>By using ScriptishRx, you agree to secure your account credentials and use the platform for lawful business purposes only. We reserve the right to terminate accounts that violate our usage policies.</p>
+
+                    <h4 className="font-bold text-slate-900 text-lg mt-6">3. Intellectual Property Rights</h4>
+                    <p>© {new Date().getFullYear()} ScriptishRx LLC. All rights reserved.</p>
+                    <p>The ScriptishRx platform, including its code, design, logos, and AI algorithms, is the exclusive intellectual property of ScriptishRx LLC. Unauthorized reproduction, reverse engineering, or redistribution of our software is strictly prohibited.</p>
+                    <p>Business data you input into the system remains your property. You grant us a limited license to process this data solely for providing the service to you.</p>
+                </Modal>
+            )}
+
+            {activeModal === 'sitemap' && (
+                <Modal title="Sitemap" onClose={() => setActiveModal(null)}>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <h4 className="font-bold text-slate-900 mb-2">Main Pages</h4>
+                            <ul className="space-y-2">
+                                <li><a href="/" className="text-primary-start hover:underline">Home</a></li>
+                                <li><a href="#features" className="text-primary-start hover:underline">Features</a></li>
+                                <li><a href="#solutions" className="text-primary-start hover:underline">Solutions</a></li>
+                                <li><a href="#contact" className="text-primary-start hover:underline">Contact</a></li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-slate-900 mb-2">Platform</h4>
+                            <ul className="space-y-2">
+                                <li><a href="/login" className="text-primary-start hover:underline">Login</a></li>
+                                <li><a href="/register" className="text-primary-start hover:underline">Register</a></li>
+                                <li><a href="/dashboard" className="text-primary-start hover:underline">Dashboard</a></li>
+                            </ul>
+                        </div>
+                        <div className="col-span-2">
+                            <h4 className="font-bold text-slate-900 mb-2">Legal</h4>
+                            <ul className="space-y-2">
+                                <li><button onClick={() => setActiveModal('privacy')} className="text-primary-start hover:underline">Privacy Policy</button></li>
+                                <li><button onClick={() => setActiveModal('privacy')} className="text-primary-start hover:underline">Terms of Service</button></li>
+                                <li><button onClick={() => setActiveModal('privacy')} className="text-primary-start hover:underline">Intellectual Property</button></li>
+                            </ul>
+                        </div>
+                    </div>
+                </Modal>
+            )}
+
+            <div className="container mx-auto px-4">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12 mb-12 md:mb-16">
+                    <div className="col-span-2 lg:col-span-1 space-y-6">
+                        <div className="flex items-center gap-2 mb-4">
+                            <img src="/logo.jpg" alt="ScriptishRx Logo" className="h-16 w-auto object-contain brightness-0 invert" />
+                        </div>
+                        <p className="text-slate-400 leading-relaxed max-w-sm">
+                            The #1 AI-powered business concierge platform for modern enterprises.
+                        </p>
+                        <div className="flex gap-4">
+                            {[Twitter, Facebook, Instagram, Linkedin].map((Icon, i) => (
+                                <a key={i} href="#" className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:bg-primary-start hover:text-white transition-colors">
+                                    <Icon className="w-5 h-5" />
+                                </a>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 className="font-bold mb-6 text-lg">Product</h4>
+                        <ul className="space-y-4 text-slate-400">
+                            <li><a href="#features" className="hover:text-white transition-colors">Features</a></li>
+                            <li><a href="#solutions" className="hover:text-white transition-colors">Solutions</a></li>
+                            <li><a href="#" className="hover:text-white transition-colors">Case Studies</a></li>
+                            <li><a href="#" className="hover:text-white transition-colors">Reviews</a></li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h4 className="font-bold mb-6 text-lg">Company</h4>
+                        <ul className="space-y-4 text-slate-400">
+                            <li><a href="#" className="hover:text-white transition-colors">About Us</a></li>
+                            <li><button onClick={() => setActiveModal('privacy')} className="hover:text-white transition-colors text-left">Privacy Policy</button></li>
+                            <li><button onClick={() => setActiveModal('privacy')} className="hover:text-white transition-colors text-left">Terms of Service</button></li>
+                            <li><button onClick={() => setActiveModal('privacy')} className="hover:text-white transition-colors text-left">IP Rights</button></li>
+                        </ul>
+                    </div>
+
+                    <div className="col-span-2 lg:col-span-1">
+                        <h4 className="font-bold mb-6 text-lg">Contact</h4>
+                        <ul className="space-y-4 text-slate-400">
+                            <li className="flex items-start gap-3">
+                                <span className="opacity-50 text-sm uppercase tracking-wider w-16 pt-1">Email:</span>
+                                <span className="text-white">info@scriptishrx.com</span>
+                            </li>
+                            <li className="flex items-start gap-3">
+                                <span className="opacity-50 text-sm uppercase tracking-wider w-16 pt-1">Phone:</span>
+                                <span className="text-white">866-724-3198</span>
+                            </li>
+                            <li className="flex items-start gap-3">
+                                <span className="opacity-50 text-sm uppercase tracking-wider w-16 pt-1">Address:</span>
+                                <span className="text-white leading-relaxed">111 N Wabash Ave Suite 1711<br />Chicago, Illinois 60602</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <div className="pt-8 border-t border-slate-800 text-center text-slate-500 text-sm flex flex-col md:flex-row justify-between items-center gap-4">
+                    <span>© {new Date().getFullYear()} ScriptishRx LLC. All rights reserved.</span>
+                    <div className="flex gap-6">
+                        <button onClick={() => setActiveModal('privacy')} className="hover:text-white transition-colors">Privacy & Terms</button>
+                        <button onClick={() => setActiveModal('sitemap')} className="hover:text-white transition-colors">Sitemap</button>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    );
+};
