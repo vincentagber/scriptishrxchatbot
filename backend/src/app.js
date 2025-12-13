@@ -7,6 +7,9 @@ const fs = require('fs');
 
 const app = express();
 
+// Trust Proxy (Crucial for Render/Heroku Rate Limiting)
+app.set('trust proxy', 1);
+
 // Security & Middleware
 app.use(cors({
     origin: ['http://localhost:3000', 'http://localhost:5000', process.env.FRONTEND_URL],
