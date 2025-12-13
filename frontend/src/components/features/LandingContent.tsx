@@ -72,7 +72,7 @@ export const FeatureSteps = () => (
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-start to-primary-end">Everything For You!</span>
             </h2>
             <p className="text-slate-500 max-w-2xl mx-auto mb-20 text-lg">
-                Seamlessly integrate health management into your daily life with our three-step process.
+                Seamlessly integrate business management into your daily workflow with our three-step process.
             </p>
 
             <div className="grid md:grid-cols-3 gap-12 relative">
@@ -571,7 +571,7 @@ export const Footer = () => (
                         </li>
                         <li className="flex items-start gap-3">
                             <span className="opacity-70">Addr:</span>
-                            <span className="text-white">123 Wellness Ave, Tech City, CA</span>
+                            <span className="text-white">123 Innovation Ave, Tech City, CA</span>
                         </li>
                     </ul>
                 </div>

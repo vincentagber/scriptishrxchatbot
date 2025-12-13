@@ -158,7 +158,7 @@ function WorkflowModal({ isOpen, onClose, onSave }: { isOpen: boolean, onClose: 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Workflow Name</label>
-                        <input name="name" type="text" required placeholder="e.g. New Patient Welcome" className="w-full p-3 bg-gray-50 border-none rounded-xl text-sm font-medium focus:ring-2 focus:ring-black/5 outline-none" />
+                        <input name="name" type="text" required placeholder="e.g. New Client Welcome" className="w-full p-3 bg-gray-50 border-none rounded-xl text-sm font-medium focus:ring-2 focus:ring-black/5 outline-none" />
                     </div>
                     <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Trigger Event</label>
@@ -763,7 +763,7 @@ export default function SettingsPage() {
                                             className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none font-medium text-gray-900"
                                             value={settings.aiName}
                                             onChange={(e) => setSettings({ ...settings, aiName: e.target.value })}
-                                            placeholder="e.g. HealthBot 9000"
+                                            placeholder="e.g. BizBot 9000"
                                         />
                                     </div>
                                 </div>

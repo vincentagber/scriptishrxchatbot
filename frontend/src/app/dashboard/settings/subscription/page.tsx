@@ -146,7 +146,7 @@ export default function SubscriptionPage() {
         {
             name: 'Basic',
             price: '99.99',
-            description: "Essential tools for small practices.",
+            description: "Essential tools for small businesses.",
             features: ['Public Chatbot', 'Basic CRM', 'Email Support'],
             color: 'bg-slate-900',
             buttonColor: 'bg-slate-900 text-white hover:bg-slate-800'
@@ -154,7 +154,7 @@ export default function SubscriptionPage() {
         {
             name: 'Intermediate',
             price: '149.99',
-            description: "Advanced features for growing clinics.",
+            description: "Advanced features for growing companies.",
             features: ['Everything in Basic', 'Voice Agent', 'Advanced Analytics', 'Priority Support'],
             popular: true,
             color: 'bg-indigo-600',
