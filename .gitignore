@@ -18,3 +18,4 @@ yarn-error.log*
 # Ignore temporary or OS files
 *.log
 .env
+RENDER_ENV_VARS.txt
