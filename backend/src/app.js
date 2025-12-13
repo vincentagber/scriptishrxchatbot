@@ -245,7 +245,8 @@ app.use('/webhooks', webhooksRouter);
 app.use('/api/marketing', marketingRouter);
 
 // ==================== HEALTH CHECK ====================
-app.get('/', (req, res) => {
+// Health Check moved to /api/health
+app.get('/api/health', (req, res) => {
     res.json({
         status: 'ok',
         version: '2.0.0',
@@ -263,6 +264,24 @@ app.get('/', (req, res) => {
         }
     });
 });
+
+// Serve Frontend Static Files (SPA)
+const publicPath = path.join(__dirname, '../public');
+if (fs.existsSync(publicPath)) {
+    console.log(`✓ Serving static files from: ${publicPath}`);
+    app.use(express.static(publicPath));
+
+    // SPA Fallback: Serve index.html for any unknown route that isn't /api
+    app.get('*', (req, res, next) => {
+        if (req.path.startsWith('/api') || req.path.startsWith('/media-stream')) return next();
+        res.sendFile(path.join(publicPath, 'index.html'));
+    });
+} else {
+    console.warn('⚠ No frontend build found in public directory');
+    app.get('/', (req, res) => {
+        res.status(200).send('ScriptishRx API is running. Frontend build not matched.');
+    });
+}
 
 // ==================== ERROR HANDLERS ====================
 

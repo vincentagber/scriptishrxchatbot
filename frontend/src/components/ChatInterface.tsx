@@ -101,7 +101,7 @@ export default function ChatInterface({ tenantId: propTenantId, token, isDashboa
         setMessages(prev => [...prev, tempUserMsg]);
 
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
             const tenantId = propTenantId || process.env.NEXT_PUBLIC_LANDING_TENANT_ID;
 
             const headers: any = { 'Content-Type': 'application/json' };
@@ -109,7 +109,7 @@ export default function ChatInterface({ tenantId: propTenantId, token, isDashboa
                 headers['Authorization'] = `Bearer ${token}`;
             }
 
-            const res = await fetch(`${apiUrl}/chat/message`, { // Updated endpoint to match dashboard
+            const res = await fetch(`${apiUrl}/api/chat/message`, { // Updated endpoint to match dashboard
                 method: 'POST',
                 headers,
                 body: JSON.stringify({
