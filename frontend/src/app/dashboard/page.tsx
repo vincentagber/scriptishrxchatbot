@@ -5,14 +5,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Users, DollarSign, Clock, Activity, RefreshCw, Calendar, Zap,
     ArrowUpRight, ArrowDownRight, Phone, Shield, Search, Bell, Menu,
-    Globe, Server, Cpu, Radio
+    Globe, Server, Cpu, Radio, ChevronRight, X, User
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
-import { useDashboardStats } from '@/hooks/useDashboardData';
+import { useDashboardStats, useVoiceStats } from '@/hooks/useDashboardData';
 import { RecentBookings } from '@/components/dashboard/RecentBookings';
 import { RevenueChart } from '@/components/dashboard/RevenueChart';
 import { ServiceList } from '@/components/dashboard/ServiceList';
+import Link from 'next/link';
 
 // --- Variants for Animations ---
 const containerVariants = {
@@ -34,10 +35,16 @@ const itemVariants = {
 export default function DashboardPage() {
     // Poll data every 5s for that "live" feel
     const { data: stats, isLoading, refetch, isRefetching } = useDashboardStats();
+    // New Dedicated Voice Stats
+    const { data: voiceStats, isLoading: voiceLoading } = useVoiceStats();
 
-    // Local state for "Mock Live" visualizers
+    // User Profile State
+    const [userName, setUserName] = useState('');
+
+    // UI States
     const [liveUsers, setLiveUsers] = useState(12);
     const [systemLoad, setSystemLoad] = useState(24);
+    const [greeting, setGreeting] = useState('');
 
     // Simulate live data fluctuations
     useEffect(() => {
@@ -48,6 +55,30 @@ export default function DashboardPage() {
         return () => clearInterval(interval);
     }, []);
 
+    // Set Greeting & Fetch User Name
+    useEffect(() => {
+        // 1. Time-based Greeting
+        const hour = new Date().getHours();
+        if (hour < 12) setGreeting('Good Morning');
+        else if (hour < 18) setGreeting('Good Afternoon');
+        else setGreeting('Good Evening');
+
+        // 2. Fetch User Name
+        const fetchUser = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) return;
+                const { data } = await import('@/lib/api').then(m => m.default.get('/settings'));
+                // Use first name
+                const firstName = data.name ? data.name.split(' ')[0] : 'Admin';
+                setUserName(firstName);
+            } catch (e) {
+                setUserName('Admin');
+            }
+        };
+        fetchUser();
+    }, []);
+
     const handleRefresh = async () => {
         await refetch();
     };
@@ -55,6 +86,12 @@ export default function DashboardPage() {
     const currentDate = new Date().toLocaleDateString('en-US', {
         weekday: 'long', year: 'numeric', month: 'short', day: 'numeric'
     });
+
+    const formatDuration = (val: number) => {
+        const mins = Math.floor(val / 60);
+        const secs = Math.floor(val % 60);
+        return `${mins}m ${secs}s`;
+    };
 
     return (
         <motion.div
@@ -73,14 +110,14 @@ export default function DashboardPage() {
             <motion.div variants={itemVariants} className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
                 <div>
                     <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
-                        Command Center
+                        {greeting}, {userName}
                         <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold border border-emerald-200 tracking-wide uppercase">
                             Live
                         </span>
                     </h1>
                     <p className="text-slate-500 font-medium mt-2 flex items-center gap-2">
                         <Globe className="w-4 h-4 text-slate-400" />
-                        ScriptishRx Global Operations
+                        ScriptishRx Command Center
                         <span className="mx-2 text-slate-300">|</span>
                         <span className="text-slate-400">{currentDate}</span>
                     </p>
@@ -140,7 +177,7 @@ export default function DashboardPage() {
             <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <PremiumStatCard
                     title="Voice Interactions"
-                    value={stats?.voiceInteractions?.toLocaleString() || '0'}
+                    value={voiceStats?.callsToday?.toLocaleString() || '0'}
                     trend="+12%"
                     trendUp={true}
                     icon={Radio}
@@ -239,22 +276,25 @@ export default function DashboardPage() {
                             <div className="space-y-4">
                                 <div className="flex justify-between items-center text-sm">
                                     <span className="text-slate-400">Calls Today</span>
-                                    <span className="font-bold text-xl">{stats?.voiceInteractions || 24}</span>
+                                    <span className="font-bold text-xl">{voiceStats?.callsToday || 0}</span>
                                 </div>
                                 <div className="flex justify-between items-center text-sm">
                                     <span className="text-slate-400">Avg Duration</span>
-                                    <span className="font-mono text-slate-200">2m 45s</span>
+                                    <span className="font-mono text-slate-200">{formatDuration(voiceStats?.averageDuration || 0)}</span>
                                 </div>
                                 <div className="flex justify-between items-center text-sm">
                                     <span className="text-slate-400">Sentiment</span>
-                                    <span className="text-emerald-400 font-bold">Positive (94%)</span>
+                                    <span className="text-emerald-400 font-bold">{voiceStats?.Sentiment || 'N/A'}</span>
                                 </div>
                             </div>
 
                             <div className="mt-8 pt-6 border-t border-white/10">
-                                <button className="w-full py-3 bg-white text-slate-900 font-bold rounded-xl hover:bg-slate-100 transition-colors flex items-center justify-center gap-2">
+                                <Link
+                                    href="/dashboard/voice"
+                                    className="w-full py-3 bg-white text-slate-900 font-bold rounded-xl hover:bg-slate-100 transition-colors flex items-center justify-center gap-2"
+                                >
                                     <Activity className="w-4 h-4" /> View Live Logs
-                                </button>
+                                </Link>
                             </div>
                         </div>
                     </div>

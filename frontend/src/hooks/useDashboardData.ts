@@ -8,7 +8,20 @@ export function useDashboardStats() {
             const { data } = await api.get('/clients/stats');
             return data;
         },
-        refetchInterval: 10000, // Poll every 10 seconds for realtime updates
+        refetchInterval: 10000,
+        refetchOnWindowFocus: true
+    });
+}
+
+export function useVoiceStats() {
+    return useQuery({
+        queryKey: ['voice', 'stats'],
+        queryFn: async () => {
+            // Fetch from new endpoint
+            const { data } = await api.get('/voicecake/stats');
+            return data.stats;
+        },
+        refetchInterval: 5000, // Faster poll for voice stats
         refetchOnWindowFocus: true
     });
 }
