@@ -37,8 +37,44 @@ class ClientService {
             })
         ]);
 
-        // Revenue Mock Calc
-        const revenue = revenueRaw.length * 50;
+        // CHART DATA CALCULATION: Last 7 Days
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+        sevenDaysAgo.setHours(0, 0, 0, 0);
+
+        const recentBookings = await prisma.booking.findMany({
+            where: {
+                tenantId,
+                status: 'Completed',
+                date: { gte: sevenDaysAgo }
+            },
+            select: { date: true }
+        });
+
+        // Initialize last 7 days map
+        const chartData = [];
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+        for (let i = 0; i < 7; i++) {
+            const d = new Date();
+            d.setDate(d.getDate() - (6 - i));
+            const dayName = days[d.getDay()];
+            const dateStr = d.toDateString(); // For comparison
+
+            // Sum bookings for this day
+            const dailyCount = recentBookings.filter(b => new Date(b.date).toDateString() === dateStr).length;
+            const dailyIncome = dailyCount * 50; // Mock $50/booking
+            // Mock expense: 40-70% of income + some noise, or random if 0 income
+            const dailyExpense = dailyIncome > 0
+                ? Math.floor(dailyIncome * (0.4 + Math.random() * 0.3))
+                : Math.floor(Math.random() * 500) + 500;
+
+            chartData.push({
+                name: dayName,
+                income: dailyIncome,
+                expense: dailyExpense
+            });
+        }
 
         return {
             totalClients,
@@ -48,7 +84,8 @@ class ClientService {
             topServices: topServices.map(s => ({
                 name: s.purpose,
                 count: s._count.id
-            }))
+            })),
+            chartData // <--- Added this
         };
     }
 
