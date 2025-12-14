@@ -3,65 +3,63 @@ import { Button } from '@/components/ui/Button';
 import { useRecentBookings } from '@/hooks/useDashboardData';
 import { cn } from '@/lib/utils';
 
-export function RecentBookings() {
+export function RecentBookings({ clean = false }: { clean?: boolean }) {
     const { data: bookings, isLoading } = useRecentBookings();
 
-    return (
-        <GlassCard>
-            <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold text-zinc-900">Recent Transactions</h3>
-                <Button variant="ghost" size="sm" className="text-primary-end hover:bg-primary-start/10">View All</Button>
+    const Content = (
+        <div className={cn("w-full", clean ? "" : "p-6")}>
+            <div className="flex items-center justify-between mb-6 px-4 pt-4">
+                <h3 className="text-lg font-bold text-slate-900">Recent Transactions</h3>
+                <Button variant="ghost" size="sm" className="text-blue-600 hover:bg-blue-50 font-bold text-xs">View All</Button>
             </div>
 
             <div className="overflow-x-auto min-h-[200px]">
                 {isLoading ? (
-                    <div className="flex items-center justify-center h-40 text-zinc-400">Loading...</div>
+                    <div className="flex items-center justify-center h-40 text-slate-400">Loading activity...</div>
                 ) : (
                     <table className="w-full">
-                        <thead>
-                            <tr className="text-left text-xs font-medium text-zinc-400 uppercase tracking-wider border-b border-zinc-100">
-                                <th className="pb-4 pl-4">Date</th>
-                                <th className="pb-4">Client</th>
-                                <th className="pb-4">Status</th>
-                                <th className="pb-4 text-right pr-4">Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-zinc-100">
+                        <tbody className="divide-y divide-slate-100">
                             {bookings && bookings.length > 0 ? (
                                 bookings.map((booking: any, idx: number) => (
-                                    <tr key={booking.id || idx} className="group hover:bg-zinc-50 transition-colors">
-                                        <td className="py-4 pl-4 text-sm text-zinc-600 font-medium">
-                                            {new Date(booking.date).toLocaleString('en-US', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                                        </td>
-                                        <td className="py-4">
+                                    <tr key={booking.id || idx} className="group hover:bg-slate-50/80 transition-colors">
+                                        <td className="py-4 pl-6">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center text-xs font-bold text-zinc-600 border border-zinc-200">
+                                                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-sm font-bold text-slate-600 border border-slate-200">
                                                     {booking.client?.name?.charAt(0) || 'U'}
                                                 </div>
-                                                <span className="text-sm font-medium text-zinc-900 group-hover:text-primary-start transition-colors">
-                                                    {booking.client?.name || 'Unknown User'}
-                                                </span>
+                                                <div>
+                                                    <p className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                                                        {booking.client?.name || 'Unknown User'}
+                                                    </p>
+                                                    <p className="text-xs text-slate-500 font-medium">
+                                                        {new Date(booking.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </p>
+                                                </div>
                                             </div>
                                         </td>
-                                        <td className="py-4">
-                                            <StatusBadge status={booking.status} />
-                                        </td>
-                                        <td className="py-4 pr-4 text-right text-sm font-bold text-zinc-900">
-                                            $49.99
+                                        <td className="py-4 text-right pr-6">
+                                            <div className="flex flex-col items-end gap-1">
+                                                <span className="text-sm font-bold text-slate-900">$49.99</span>
+                                                <StatusBadge status={booking.status} />
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={4} className="py-8 text-center text-zinc-400">No recent activity detected.</td>
+                                    <td colSpan={2} className="py-8 text-center text-slate-400 text-sm">No recent activity.</td>
                                 </tr>
                             )}
                         </tbody>
                     </table>
                 )}
             </div>
-        </GlassCard>
+        </div>
     );
+
+    if (clean) return Content;
+
+    return <GlassCard className="p-0 overflow-hidden">{Content}</GlassCard>;
 }
 
 function StatusBadge({ status }: { status: string }) {

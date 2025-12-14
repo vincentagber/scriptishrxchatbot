@@ -1,180 +1,319 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Users, DollarSign, Clock, Activity, RefreshCw, Calendar, Zap, ArrowUpRight, ArrowDownRight, Phone } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+    Users, DollarSign, Clock, Activity, RefreshCw, Calendar, Zap,
+    ArrowUpRight, ArrowDownRight, Phone, Shield, Search, Bell, Menu,
+    Globe, Server, Cpu, Radio
+} from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 import { useDashboardStats } from '@/hooks/useDashboardData';
-import { StatCard } from '@/components/dashboard/StatCard';
 import { RecentBookings } from '@/components/dashboard/RecentBookings';
 import { RevenueChart } from '@/components/dashboard/RevenueChart';
 import { ServiceList } from '@/components/dashboard/ServiceList';
 
+// --- Variants for Animations ---
+const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+        opacity: 1,
+        transition: {
+            staggerChildren: 0.1,
+            delayChildren: 0.1
+        }
+    }
+};
+
+const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 120 } }
+};
+
 export default function DashboardPage() {
-    // Polling enabled via useDashboardData hook update
+    // Poll data every 5s for that "live" feel
     const { data: stats, isLoading, refetch, isRefetching } = useDashboardStats();
 
-    const [greeting, setGreeting] = useState('');
-    const [currentDate, setCurrentDate] = useState('');
+    // Local state for "Mock Live" visualizers
+    const [liveUsers, setLiveUsers] = useState(12);
+    const [systemLoad, setSystemLoad] = useState(24);
 
+    // Simulate live data fluctuations
     useEffect(() => {
-        // Time-based Greeting
-        const hour = new Date().getHours();
-        if (hour < 12) setGreeting('Good Morning');
-        else if (hour < 18) setGreeting('Good Afternoon');
-        else setGreeting('Good Evening');
-
-        // Current Date
-        setCurrentDate(new Date().toLocaleDateString('en-US', {
-            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-        }));
+        const interval = setInterval(() => {
+            setLiveUsers(prev => Math.max(5, Math.min(50, prev + Math.floor(Math.random() * 5) - 2)));
+            setSystemLoad(prev => Math.max(10, Math.min(90, prev + Math.floor(Math.random() * 10) - 5)));
+        }, 3000);
+        return () => clearInterval(interval);
     }, []);
 
     const handleRefresh = async () => {
         await refetch();
     };
 
+    const currentDate = new Date().toLocaleDateString('en-US', {
+        weekday: 'long', year: 'numeric', month: 'short', day: 'numeric'
+    });
+
     return (
-        <div className="min-h-screen text-slate-800 p-4 md:p-8 space-y-8 relative overflow-hidden">
-            {/* Background Atmosphere */}
+        <motion.div
+            className="min-h-screen text-slate-800 p-4 md:p-8 space-y-8 relative overflow-hidden"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+        >
+            {/* Ambient Background */}
             <div className="fixed inset-0 pointer-events-none z-[-1]">
-                <div className="absolute top-[-10%] left-[-10%] w-[40rem] h-[40rem] bg-blue-400/20 rounded-full blur-[100px] opacity-50" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[40rem] h-[40rem] bg-purple-400/20 rounded-full blur-[100px] opacity-50" />
+                <div className="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] bg-blue-500/10 rounded-full blur-[120px] opacity-60 animate-pulse" />
+                <div className="absolute bottom-[-20%] right-[-10%] w-[50vw] h-[50vw] bg-violet-500/10 rounded-full blur-[120px] opacity-60 animate-pulse" style={{ animationDelay: '2s' }} />
             </div>
 
-            {/* Header Section */}
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 backdrop-blur-sm bg-white/30 p-6 rounded-2xl border border-white/50 shadow-sm">
+            {/* --- HEADER SECTION --- */}
+            <motion.div variants={itemVariants} className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
                 <div>
-                    <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700">
-                        {greeting}, <span className="font-light">Admin</span>
-                    </h1>
-                    <div className="flex items-center gap-3 mt-2">
-                        <span className="relative flex h-3 w-3">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                    <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+                        Command Center
+                        <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold border border-emerald-200 tracking-wide uppercase">
+                            Live
                         </span>
-                        <p className="text-slate-600 font-medium text-sm">
-                            System Live • <span className="text-slate-500 font-normal"> Monitoring Real-time Operations</span>
-                        </p>
-                    </div>
+                    </h1>
+                    <p className="text-slate-500 font-medium mt-2 flex items-center gap-2">
+                        <Globe className="w-4 h-4 text-slate-400" />
+                        ScriptishRx Global Operations
+                        <span className="mx-2 text-slate-300">|</span>
+                        <span className="text-slate-400">{currentDate}</span>
+                    </p>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    <div className="hidden md:flex flex-col items-end px-4">
-                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Today</span>
-                        <span className="text-sm font-semibold text-slate-700">{currentDate}</span>
+                <div className="flex items-center gap-4">
+                    {/* System Status Indicators */}
+                    <div className="hidden md:flex items-center gap-6 px-6 py-3 bg-white/60 backdrop-blur-md rounded-2xl border border-white/60 shadow-sm mr-4">
+                        <div className="flex items-center gap-3">
+                            <div className="relative">
+                                <Users className="w-5 h-5 text-blue-600" />
+                                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-500"></span>
+                                </span>
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Live Users</p>
+                                <p className="text-sm font-bold text-slate-800">{liveUsers}</p>
+                            </div>
+                        </div>
+                        <div className="w-px h-8 bg-slate-200" />
+                        <div className="flex items-center gap-3">
+                            <Cpu className="w-5 h-5 text-violet-600" />
+                            <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">System Load</p>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-16 h-2 bg-slate-100 rounded-full overflow-hidden">
+                                        <motion.div
+                                            className="h-full bg-violet-500"
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${systemLoad}%` }}
+                                            transition={{ type: "spring", bounce: 0 }}
+                                        />
+                                    </div>
+                                    <p className="text-xs font-bold text-slate-800">{systemLoad}%</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
+
                     <Button
                         size="sm"
                         onClick={handleRefresh}
                         className={cn(
-                            "h-10 px-4 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 shadow-sm transition-all duration-200",
-                            isRefetching && "opacity-80"
+                            "h-12 px-6 rounded-xl bg-slate-900 text-white hover:bg-slate-800 shadow-lg shadow-slate-200 hover:shadow-xl transition-all duration-300 font-bold",
+                            isRefetching && "opacity-90"
                         )}
                     >
                         <RefreshCw className={cn("w-4 h-4 mr-2", isRefetching && "animate-spin")} />
                         {isRefetching ? 'Syncing...' : 'Sync Data'}
                     </Button>
                 </div>
-            </div>
+            </motion.div>
 
-            {/* Stats Grid - Glassmorphism */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <GlassStatCard
+            {/* --- HERO STATS GRID --- */}
+            <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <PremiumStatCard
                     title="Voice Interactions"
                     value={stats?.voiceInteractions?.toLocaleString() || '0'}
                     trend="+12%"
                     trendUp={true}
-                    icon={Phone}
-                    gradient="from-blue-500 to-indigo-600"
-                    delay={0}
+                    icon={Radio}
+                    color="blue"
+                    index={0}
                 />
-                <GlassStatCard
+                <PremiumStatCard
                     title="Total Revenue"
                     value={`$${stats?.revenue?.toLocaleString() || '0'}`}
                     trend="+8.2%"
                     trendUp={true}
                     icon={DollarSign}
-                    gradient="from-emerald-500 to-teal-600"
-                    delay={100}
+                    color="emerald"
+                    index={1}
                 />
-                <GlassStatCard
-                    title="Active Users"
+                <PremiumStatCard
+                    title="Active Clients"
                     value={stats?.totalClients?.toLocaleString() || '0'}
                     trend="+24%"
                     trendUp={true}
                     icon={Users}
-                    gradient="from-violet-500 to-purple-600"
-                    delay={200}
+                    color="violet"
+                    index={2}
                 />
-                <GlassStatCard
+                <PremiumStatCard
                     title="Pending Bookings"
                     value={stats?.bookingsCount?.toLocaleString() || '0'}
                     trend="-2%"
                     trendUp={false}
                     icon={Clock}
-                    gradient="from-orange-500 to-amber-600"
-                    delay={300}
+                    color="amber"
+                    index={3}
                 />
-            </div>
+            </motion.div>
 
-            {/* Main Content Split */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Chart Section - Takes 2 columns */}
-                <div className="lg:col-span-2 bg-white/70 backdrop-blur-md rounded-2xl p-6 border border-white/50 shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300">
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <RevenueChart />
-                </div>
+            {/* --- MAIN CONTENT AREA --- */}
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
 
-                {/* Service List - Takes 1 column */}
-                <div className="bg-white/70 backdrop-blur-md rounded-2xl p-6 border border-white/50 shadow-sm h-full relative overflow-hidden group hover:shadow-md transition-all duration-300">
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-teal-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <ServiceList />
-                </div>
-            </div>
+                {/* Left Col: Analytics & Revenue */}
+                <motion.div variants={itemVariants} className="xl:col-span-2 space-y-8">
+                    {/* Charts Card */}
+                    <div className="bg-white/70 backdrop-blur-xl rounded-3xl p-8 border border-white/50 shadow-sm relative overflow-hidden group">
+                        <div className="flex items-center justify-between mb-8">
+                            <div>
+                                <h3 className="text-xl font-bold text-slate-900">Revenue Analytics</h3>
+                                <p className="text-slate-500 text-sm">Financial performance over the last 30 days</p>
+                            </div>
+                            <div className="flex gap-2">
+                                {['1D', '1W', '1M', '1Y'].map(range => (
+                                    <button
+                                        key={range}
+                                        className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors ${range === '1M' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                                    >
+                                        {range}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <RevenueChart />
+                    </div>
 
-            {/* Recent Bookings Table */}
-            <div className="bg-white/70 backdrop-blur-md rounded-2xl border border-white/50 shadow-sm overflow-hidden hover:shadow-md transition-all duration-300">
-                <RecentBookings />
+                    {/* Quick Services List */}
+                    <div className="bg-white/70 backdrop-blur-xl rounded-3xl p-8 border border-white/50 shadow-sm">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-xl font-bold text-slate-900">Top Services</h3>
+                            <button className="text-sm font-bold text-blue-600 hover:text-blue-700">View All</button>
+                        </div>
+                        <ServiceList />
+                    </div>
+                </motion.div>
+
+                {/* Right Col: AI Agent & Recent Activity */}
+                <motion.div variants={itemVariants} className="space-y-8">
+
+                    {/* AI Agent Status Card */}
+                    <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-8 text-white relative overflow-hidden shadow-xl shadow-slate-200">
+                        {/* Animated Background Mesh */}
+                        <div className="absolute inset-0 opacity-20">
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500 rounded-full blur-[80px]" />
+                            <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500 rounded-full blur-[80px]" />
+                        </div>
+
+                        <div className="relative z-10">
+                            <div className="flex justify-between items-start mb-8">
+                                <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-md">
+                                    <Zap className="w-8 h-8 text-yellow-400" />
+                                </div>
+                                <span className="px-3 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-full text-xs font-bold uppercase tracking-wider animate-pulse">
+                                    Voice Agent Active
+                                </span>
+                            </div>
+
+                            <h3 className="text-2xl font-bold mb-2">VoiceCake Agent</h3>
+                            <p className="text-slate-400 text-sm mb-6">Handling inbound inquiries and scheduling.</p>
+
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-slate-400">Calls Today</span>
+                                    <span className="font-bold text-xl">{stats?.voiceInteractions || 24}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-slate-400">Avg Duration</span>
+                                    <span className="font-mono text-slate-200">2m 45s</span>
+                                </div>
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-slate-400">Sentiment</span>
+                                    <span className="text-emerald-400 font-bold">Positive (94%)</span>
+                                </div>
+                            </div>
+
+                            <div className="mt-8 pt-6 border-t border-white/10">
+                                <button className="w-full py-3 bg-white text-slate-900 font-bold rounded-xl hover:bg-slate-100 transition-colors flex items-center justify-center gap-2">
+                                    <Activity className="w-4 h-4" /> View Live Logs
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Recent Bookings Feed */}
+                    <div className="bg-white/70 backdrop-blur-xl rounded-3xl p-1 border border-white/50 shadow-sm h-full">
+                        <RecentBookings />
+                    </div>
+
+                </motion.div>
             </div>
-        </div>
+        </motion.div>
     );
 }
 
-// Internal Glass Component for this page
-function GlassStatCard({ title, value, trend, trendUp, icon: Icon, gradient, delay }: any) {
+// --- Premium Stat Card Component ---
+function PremiumStatCard({ title, value, trend, trendUp, icon: Icon, color, index }: any) {
+    const colors = {
+        blue: 'from-blue-500 to-indigo-600 shadow-blue-200 text-blue-600 bg-blue-50',
+        emerald: 'from-emerald-500 to-teal-600 shadow-emerald-200 text-emerald-600 bg-emerald-50',
+        violet: 'from-violet-500 to-purple-600 shadow-violet-200 text-violet-600 bg-violet-50',
+        amber: 'from-amber-400 to-orange-500 shadow-amber-200 text-amber-600 bg-amber-50',
+    };
+
+    // @ts-ignore
+    const theme = colors[color] || colors.blue;
+
     return (
-        <div
-            className="relative bg-white/60 backdrop-blur-xl rounded-2xl p-6 border border-white/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group overflow-hidden"
-            style={{ animationDelay: `${delay}ms` }}
+        <motion.div
+            whileHover={{ y: -5 }}
+            className="relative bg-white/80 backdrop-blur-xl rounded-3xl p-6 border border-white/60 shadow-lg shadow-slate-100/50 group overflow-hidden"
         >
-            <div className={`absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity`}>
-                <Icon className="w-24 h-24 text-slate-900" />
+            <div className={`absolute top-0 right-0 p-4 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity duration-300 transform group-hover:scale-110`}>
+                <Icon className="w-32 h-32 text-slate-900" />
             </div>
 
-            <div className="relative z-10">
-                <div className="flex justify-between items-start mb-4">
-                    <div className={`p-3 rounded-xl bg-gradient-to-br ${gradient} text-white shadow-md group-hover:scale-110 transition-transform duration-300`}>
+            <div className="relative z-10 flex flex-col h-full justify-between">
+                <div className="flex justify-between items-start mb-6">
+                    <div className={`p-3.5 rounded-2xl bg-gradient-to-br ${theme.split(' ').slice(0, 2).join(' ')} text-white shadow-lg`}>
                         <Icon className="w-6 h-6" />
                     </div>
-                    {trend && (
-                        <div className={cn(
-                            "flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full border",
-                            trendUp
-                                ? "text-emerald-600 bg-emerald-50 border-emerald-100"
-                                : "text-rose-600 bg-rose-50 border-rose-100"
-                        )}>
-                            {trendUp ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                            {trend}
-                        </div>
-                    )}
                 </div>
 
                 <div>
-                    <h3 className="text-slate-500 text-sm font-semibold uppercase tracking-wider mb-1">{title}</h3>
-                    <p className="text-3xl font-bold text-slate-800 tracking-tight">{value}</p>
+                    <h3 className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">{title}</h3>
+                    <div className="flex items-end gap-3">
+                        <p className="text-3xl font-extrabold text-slate-900 tracking-tight">{value}</p>
+                        {trend && (
+                            <div className={cn(
+                                "flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-lg mb-1",
+                                trendUp ? "text-emerald-700 bg-emerald-100" : "text-rose-700 bg-rose-100"
+                            )}>
+                                {trendUp ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                                {trend}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
-        </div>
+        </motion.div>
     );
 }
