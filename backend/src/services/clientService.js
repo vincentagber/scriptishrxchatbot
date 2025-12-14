@@ -21,23 +21,34 @@ class ClientService {
 
     async getClientStats(tenantId) {
         // Consolidated stats query
-        const [totalClients, bookingsCount, revenueRaw] = await Promise.all([
+        const [totalClients, bookingsCount, revenueRaw, topServices] = await Promise.all([
             prisma.client.count({ where: { tenantId } }),
             prisma.booking.count({ where: { tenantId } }),
             prisma.booking.findMany({
                 where: { tenantId, status: 'Completed' },
-                select: { purpose: true } // Naive revenue calc placeholder
+                select: { purpose: true }
+            }),
+            prisma.booking.groupBy({
+                by: ['purpose'],
+                where: { tenantId, purpose: { not: null } },
+                _count: { id: true },
+                orderBy: { _count: { id: 'desc' } },
+                take: 5
             })
         ]);
 
-        // Revenue Mock Calc (Same as Insights)
-        const revenue = revenueRaw.length * 50; // Approx $50 per booking
+        // Revenue Mock Calc
+        const revenue = revenueRaw.length * 50;
 
         return {
             totalClients,
             bookingsCount,
             revenue,
-            voiceInteractions: 0 // Placeholder
+            voiceInteractions: 0,
+            topServices: topServices.map(s => ({
+                name: s.purpose,
+                count: s._count.id
+            }))
         };
     }
 
