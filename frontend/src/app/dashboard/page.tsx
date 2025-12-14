@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Variants } from 'framer-motion';
 import {
     Users, DollarSign, Clock, Activity, RefreshCw, Calendar, Zap,
     ArrowUpRight, ArrowDownRight, Phone, Shield, Search, Bell, Menu,
@@ -16,7 +16,7 @@ import { ServiceList } from '@/components/dashboard/ServiceList';
 import Link from 'next/link';
 
 // --- Variants for Animations ---
-const containerVariants = {
+const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
         opacity: 1,
@@ -27,9 +27,13 @@ const containerVariants = {
     }
 };
 
-const itemVariants = {
+const itemVariants: Variants = {
     hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 120 } }
+    visible: {
+        opacity: 1,
+        y: 0,
+        transition: { type: 'spring', stiffness: 120 }
+    }
 };
 
 export default function DashboardPage() {
