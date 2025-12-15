@@ -11,7 +11,8 @@ const router = express.Router();
 // Configure storage
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const uploadDir = path.join(__dirname, '../uploads');
+        // Fix: Go up two levels from routes (routes -> src -> backend root)
+        const uploadDir = path.join(__dirname, '../../uploads');
         if (!fs.existsSync(uploadDir)) {
             fs.mkdirSync(uploadDir, { recursive: true });
         }
