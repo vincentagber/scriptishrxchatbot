@@ -29,13 +29,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         (async () => {
             try {
                 const token = localStorage.getItem('token');
-                if (!token) return;
+                const storedName = localStorage.getItem('userName'); // Attempt to get from cache first
+
+                if (storedName) {
+                    setUser({ name: storedName, email: '', avatarUrl: '' });
+                }
+
+                if (!token) {
+                    setUser({ name: 'Guest User', email: '', avatarUrl: '' });
+                    return;
+                }
 
                 // Use configured API client
                 const { data } = await import('@/lib/api').then(m => m.default.get('/settings'));
                 setUser(data);
+
+                // Cache it for next time
+                if (data.name) localStorage.setItem('userName', data.name);
             } catch (err) {
                 console.error('User fetch failed:', err);
+                setUser(prev => prev || { name: 'Admin', email: 'admin@scriptishrx.com', avatarUrl: '' });
             }
         })();
     }, []);
