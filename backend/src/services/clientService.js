@@ -117,6 +117,17 @@ class ClientService {
     }
 
 
+    async updateClient(tenantId, id, data) {
+        const { name, email, phone, notes } = data;
+        const client = await prisma.client.findFirst({ where: { id, tenantId } });
+        if (!client) throw new Error('NOT_FOUND: Client not found');
+
+        return prisma.client.update({
+            where: { id },
+            data: { name, email, phone, notes }
+        });
+    }
+
     async deleteClient(tenantId, id) {
         const client = await prisma.client.findFirst({ where: { id, tenantId } });
         if (!client) throw new Error('NOT_FOUND: Client not found');

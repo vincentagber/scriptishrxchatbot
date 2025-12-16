@@ -42,6 +42,20 @@ router.post('/', async (req, res) => {
     }
 });
 
+// PUT /api/clients/:id
+router.put('/:id', async (req, res) => {
+    try {
+        const validated = createClientSchema.parse(req.body);
+        const client = await clientService.updateClient(req.user.tenantId, req.params.id, validated);
+        res.json(client);
+    } catch (error) {
+        if (error.name === 'ZodError') return res.status(400).json({ error: error.errors });
+        if (error.message.startsWith('NOT_FOUND')) return res.status(404).json({ error: 'Client not found' });
+        console.error('Update client error:', error);
+        res.status(500).json({ error: 'Failed to update client' });
+    }
+});
+
 // DELETE /api/clients/:id
 router.delete('/:id', async (req, res) => {
     try {
