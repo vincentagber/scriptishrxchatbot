@@ -13,7 +13,7 @@ const mockCalls = new Map();
 if (isMockMode) {
     mockAgentLinks.set('default_tenant', {
         agentId: 'agent_001',
-        agentName: 'Default Mock Agent',
+        agentName: 'Twilio Voice Agent (Mock)',
         linkedAt: new Date().toISOString()
     });
     console.log('⚠️  VoiceCake Service running in MOCK MODE');
@@ -43,22 +43,24 @@ async function getAllAgents() {
         return [
             {
                 id: 'agent_001',
-                name: 'Sales Agent',
+                name: 'Twilio Sales Bot (Mock)',
                 status: 'active',
                 language: 'en-US',
                 voice: 'alloy',
-                description: 'Handles sales inquiries and product demos',
+                description: 'Handles sales inquiries and outbound calls',
                 phoneNumber: '+15551234567',
+                capabilities: ['inbound', 'outbound'],
                 createdAt: new Date().toISOString()
             },
             {
                 id: 'agent_002',
-                name: 'Support Agent',
+                name: 'Twilio Receiver (Mock)',
                 status: 'active',
                 language: 'en-US',
                 voice: 'nova',
-                description: 'Customer support and troubleshooting',
+                description: 'Inbound reception and call routing',
                 phoneNumber: '+15551234568',
+                capabilities: ['inbound'],
                 createdAt: new Date().toISOString()
             },
             {
@@ -206,7 +208,7 @@ async function initiateOutboundCall(phoneNumber, agentId, customData = {}) {
     if (isMockMode) {
         const callId = `mock_call_${Date.now()}`;
         const callSid = `CA${Math.random().toString(36).substring(2, 15)}`;
-        
+
         const mockCall = {
             success: true,
             callId: callId,
@@ -218,9 +220,9 @@ async function initiateOutboundCall(phoneNumber, agentId, customData = {}) {
             createdAt: new Date().toISOString(),
             mockMode: true
         };
-        
+
         mockCalls.set(callSid, mockCall);
-        
+
         console.log(`✓ Mock: Initiated call to ${phoneNumber} with agent ${agentId}`);
         return mockCall;
     }
@@ -392,7 +394,7 @@ async function linkAgentToTenant(tenantId, agentId) {
             agentName: 'Mock Agent',
             linkedAt: new Date().toISOString()
         });
-        
+
         console.log(`✓ Mock: Linked agent ${agentId} to tenant ${tenantId}`);
         return {
             success: true,
@@ -406,7 +408,7 @@ async function linkAgentToTenant(tenantId, agentId) {
             tenantId,
             agentId
         });
-        
+
         console.log(`✓ Linked agent ${agentId} to tenant ${tenantId}`);
         return response.data;
     } catch (error) {
@@ -421,7 +423,7 @@ async function linkAgentToTenant(tenantId, agentId) {
 async function getTenantAgent(tenantId) {
     if (isMockMode) {
         const link = mockAgentLinks.get(tenantId) || mockAgentLinks.get('default_tenant');
-        
+
         if (link) {
             return {
                 id: link.agentId,
@@ -432,10 +434,10 @@ async function getTenantAgent(tenantId) {
                 linkedAt: link.linkedAt
             };
         }
-        
+
         return {
             id: 'agent_001',
-            name: 'Default Mock Agent',
+            name: 'Twilio Voice Agent (Mock)',
             status: 'active',
             voice: 'alloy',
             language: 'en-US',
@@ -514,7 +516,7 @@ module.exports = {
     getAgentTools,
     getAgentStats,
     checkPhoneNumberAvailability,
-    
+
     // Voice API
     initiateOutboundCall,
     getCallStatus,
@@ -522,16 +524,16 @@ module.exports = {
     getPhoneNumbers,
     updatePhoneNumberWebhook,
     getVoiceStats,
-    
+
     // Tenant API
     linkAgentToTenant,
     getTenantAgent,
-    
+
     // Legacy/Deprecated (for backward compatibility)
     getCallDetails,
     listCalls,
     getAgentConfig,
-    
+
     // Utilities
     isMockMode: () => isMockMode
 };

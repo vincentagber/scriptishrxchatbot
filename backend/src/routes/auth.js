@@ -19,14 +19,14 @@ const COOKIE_OPTIONS = {
     maxAge: 7 * 24 * 60 * 60 * 1000
 };
 
-// FIXED: Include tenantId in BOTH access & refresh tokens
+//Include tenantId in BOTH access & refresh tokens
 const generateTokens = (user) => {
     const accessToken = jwt.sign(
         {
             userId: user.id,
             email: user.email,
             role: user.role,
-            tenantId: user.tenantId   // THIS LINE WAS MISSING BEFORE
+            tenantId: user.tenantId  
         },
         JWT_SECRET,
         { expiresIn: '24h' }  // 24h is better than 15m for dashboard use
@@ -35,7 +35,7 @@ const generateTokens = (user) => {
     const refreshToken = jwt.sign(
         {
             userId: user.id,
-            tenantId: user.tenantId   // Also add here for consistency
+            tenantId: user.tenantId  
         },
         REFRESH_SECRET,
         { expiresIn: '7d' }
@@ -68,8 +68,17 @@ router.post('/register', async (req, res) => {
                     tenantId: tenant.id,
                 },
             });
+            // 14-Day Free Trial Logic
+            const trialEndDate = new Date();
+            trialEndDate.setDate(trialEndDate.getDate() + 14);
+
             await prisma.subscription.create({
-                data: { userId: user.id, plan: 'Basic', status: 'Active' },
+                data: {
+                    userId: user.id,
+                    plan: 'Trial', // Was 'Basic'
+                    status: 'Active',
+                    endDate: trialEndDate
+                },
             });
             return { tenant, user };
         });
@@ -98,7 +107,7 @@ router.post('/login', async (req, res) => {
         if (!result.success) return res.status(400).json({ error: result.error.errors[0].message });
 
         const { email, password } = result.data;
-        const user = await prisma.user.findUnique({ 
+        const user = await prisma.user.findUnique({
             where: { email },
             include: { tenant: true } // optional: for debugging
         });

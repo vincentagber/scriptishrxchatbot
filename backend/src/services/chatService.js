@@ -1,8 +1,8 @@
 // backend/src/services/chatService.js
 const voiceCakeService = require('./voiceCakeService');
 
-const isMockMode = process.env.MOCK_EXTERNAL_SERVICES === 'true' || 
-                   (!process.env.VOICECAKE_API_KEY && !process.env.OPENAI_API_KEY);
+const isMockMode = process.env.MOCK_EXTERNAL_SERVICES === 'true' ||
+    (!process.env.VOICECAKE_API_KEY && !process.env.OPENAI_API_KEY);
 
 const hasVoiceCake = !!process.env.VOICECAKE_API_KEY;
 const hasOpenAI = !!process.env.OPENAI_API_KEY;
@@ -13,42 +13,53 @@ const aiProvider = hasVoiceCake ? 'voicecake' : hasOpenAI ? 'openai' : 'mock';
 console.log(`[Chat Service] AI Provider: ${aiProvider.toUpperCase()}`);
 if (isMockMode) console.log('[Chat Service] Running in MOCK MODE');
 
-// In-memory storage for chat history (replace with database in production)
-const chatHistories = new Map();
+const prisma = require('../lib/prisma');
+
+// ... (keep surrounding code)
 
 /**
  * Get chat history for a tenant
  */
-function getChatHistory(tenantId) {
-    const history = chatHistories.get(tenantId) || [];
-    return history;
+async function getChatHistory(tenantId) {
+    try {
+        const messages = await prisma.message.findMany({
+            where: { tenantId },
+            orderBy: { createdAt: 'asc' }, // Ensure oldest first (top) -> newest last (bottom)
+            take: 50 // Limit content size
+        });
+        return messages;
+    } catch (error) {
+        console.error('Error fetching history from DB:', error);
+        return [];
+    }
 }
 
 /**
  * Add message to chat history
  */
-function addToHistory(tenantId, role, content, metadata = {}) {
-    if (!chatHistories.has(tenantId)) {
-        chatHistories.set(tenantId, []);
+async function addToHistory(tenantId, role, content, metadata = {}) {
+    try {
+        const message = await prisma.message.create({
+            data: {
+                tenantId,
+                role,
+                content,
+                sessionId: 'default', // Single session for now
+                // Metadata could be stored in a JSON field if schema allowed, but for now we simplify
+            }
+        });
+        return { ...message, ...metadata };
+    } catch (error) {
+        console.error('Error saving message to DB:', error);
+        // Fallback to memory object if DB fails so chat doesn't break UI
+        return {
+            id: `temp_${Date.now()}`,
+            role,
+            content,
+            timestamp: new Date().toISOString(),
+            ...metadata
+        };
     }
-    
-    const history = chatHistories.get(tenantId);
-    const message = {
-        id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        role,
-        content,
-        timestamp: new Date().toISOString(),
-        ...metadata
-    };
-    
-    history.push(message);
-    
-    // Keep only last 100 messages per tenant
-    if (history.length > 100) {
-        history.shift();
-    }
-    
-    return message;
 }
 
 /**
@@ -58,7 +69,7 @@ async function callOpenAI(messages, tenantId) {
     try {
         // Get conversation context
         const context = getConversationContext(tenantId, 10);
-        
+
         // Build messages array for OpenAI
         const openaiMessages = [
             {
@@ -116,8 +127,8 @@ async function callOpenAI(messages, tenantId) {
 async function processMessage(message, tenantId) {
     try {
         // Add user message to history
-        addToHistory(tenantId, 'user', message);
-        
+        await addToHistory(tenantId, 'user', message);
+
         // Mock Mode
         if (isMockMode) {
             const mockResponses = [
@@ -130,12 +141,12 @@ async function processMessage(message, tenantId) {
                 "Excellent! I'm here to assist. (This is a test response while in mock mode)",
                 "I hear you! Let me think about that... (Mock AI assistant response)"
             ];
-            
+
             const response = mockResponses[Math.floor(Math.random() * mockResponses.length)];
-            addToHistory(tenantId, 'assistant', response, { mockMode: true, provider: 'mock' });
-            
+            await addToHistory(tenantId, 'assistant', response, { mockMode: true, provider: 'mock' });
+
             await new Promise(resolve => setTimeout(resolve, 800));
-            
+
             return {
                 success: true,
                 response: response,
@@ -146,18 +157,18 @@ async function processMessage(message, tenantId) {
                 }
             };
         }
-        
+
         // OpenAI Mode
         if (aiProvider === 'openai') {
             try {
                 console.log('[Chat] Using OpenAI for response');
                 const result = await callOpenAI(message, tenantId);
-                
-                addToHistory(tenantId, 'assistant', result.response, {
+
+                await addToHistory(tenantId, 'assistant', result.response, {
                     provider: 'openai',
                     model: result.model
                 });
-                
+
                 return {
                     success: true,
                     response: result.response,
@@ -171,7 +182,7 @@ async function processMessage(message, tenantId) {
                 console.error('OpenAI error, falling back to mock:', error);
                 const fallbackResponse = "I'm having trouble connecting to OpenAI. Please try again in a moment.";
                 addToHistory(tenantId, 'assistant', fallbackResponse, { error: true, provider: 'openai-error' });
-                
+
                 return {
                     success: true,
                     response: fallbackResponse,
@@ -182,26 +193,26 @@ async function processMessage(message, tenantId) {
                 };
             }
         }
-        
+
         // VoiceCake Mode
         if (aiProvider === 'voicecake') {
             try {
                 console.log('[Chat] Using VoiceCake for response');
                 const agent = await voiceCakeService.getTenantAgent(tenantId);
-                
+
                 if (!agent) {
                     throw new Error('No AI agent configured');
                 }
-                
+
                 // TODO: Implement actual VoiceCake chat API
                 const response = "AI chat via VoiceCake is being configured. This feature will be fully operational soon.";
-                
-                addToHistory(tenantId, 'assistant', response, {
+
+                await addToHistory(tenantId, 'assistant', response, {
                     agentId: agent.id,
                     agentName: agent.name,
                     provider: 'voicecake'
                 });
-                
+
                 return {
                     success: true,
                     response: response,
@@ -213,7 +224,7 @@ async function processMessage(message, tenantId) {
                 };
             } catch (error) {
                 console.error('VoiceCake error:', error);
-                
+
                 // Fallback to OpenAI if available
                 if (hasOpenAI) {
                     console.log('[Chat] Falling back to OpenAI');
@@ -223,7 +234,7 @@ async function processMessage(message, tenantId) {
                             provider: 'openai-fallback',
                             model: result.model
                         });
-                        
+
                         return {
                             success: true,
                             response: result.response,
@@ -237,10 +248,10 @@ async function processMessage(message, tenantId) {
                         console.error('OpenAI fallback also failed:', openaiError);
                     }
                 }
-                
+
                 const fallbackResponse = "I'm having trouble connecting to the AI service. Please try again in a moment.";
                 addToHistory(tenantId, 'assistant', fallbackResponse, { error: true });
-                
+
                 return {
                     success: true,
                     response: fallbackResponse,
@@ -268,10 +279,10 @@ async function processVoiceInput(audioData, tenantId) {
         if (hasOpenAI) {
             try {
                 console.log('[Voice] Using OpenAI Whisper for transcription');
-                
+
                 // Convert base64 to buffer
                 const audioBuffer = Buffer.from(audioData, 'base64');
-                
+
                 // Create form data
                 const FormData = require('form-data');
                 const form = new FormData();
@@ -280,7 +291,7 @@ async function processVoiceInput(audioData, tenantId) {
                     contentType: 'audio/wav'
                 });
                 form.append('model', 'whisper-1');
-                
+
                 const transcriptionResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
                     method: 'POST',
                     headers: {
@@ -296,16 +307,16 @@ async function processVoiceInput(audioData, tenantId) {
 
                 const transcriptionData = await transcriptionResponse.json();
                 const transcript = transcriptionData.text;
-                
+
                 // Add transcribed message to history
-                addToHistory(tenantId, 'user', transcript, { 
+                addToHistory(tenantId, 'user', transcript, {
                     type: 'voice',
                     provider: 'openai-whisper'
                 });
-                
+
                 // Get AI response for the transcribed text
                 const aiResult = await processMessage(transcript, tenantId);
-                
+
                 return {
                     success: true,
                     transcript: transcript,
@@ -317,21 +328,21 @@ async function processVoiceInput(audioData, tenantId) {
                 throw error;
             }
         }
-        
+
         // Mock Mode
         if (isMockMode) {
             const mockTranscript = "This is a mock transcript of your voice input.";
             const mockResponse = "I heard you say: " + mockTranscript + " (Mock response)";
-            
-            addToHistory(tenantId, 'user', mockTranscript, { 
+
+            addToHistory(tenantId, 'user', mockTranscript, {
                 type: 'voice',
-                mockMode: true 
+                mockMode: true
             });
-            
-            addToHistory(tenantId, 'assistant', mockResponse, { 
-                mockMode: true 
+
+            addToHistory(tenantId, 'assistant', mockResponse, {
+                mockMode: true
             });
-            
+
             return {
                 success: true,
                 transcript: mockTranscript,
@@ -339,7 +350,7 @@ async function processVoiceInput(audioData, tenantId) {
                 provider: 'mock'
             };
         }
-        
+
         // VoiceCake Mode
         return {
             success: false,
@@ -358,8 +369,15 @@ async function processVoiceInput(audioData, tenantId) {
  * Clear chat history for a tenant
  */
 async function clearChatHistory(tenantId) {
-    chatHistories.delete(tenantId);
-    console.log(`[Chat] Cleared history for tenant: ${tenantId}`);
+    try {
+        await prisma.message.deleteMany({
+            where: { tenantId }
+        });
+        console.log(`[Chat] Cleared DB history for tenant: ${tenantId}`);
+    } catch (error) {
+        console.error('Error clearing history:', error);
+        throw error;
+    }
 }
 
 /**
