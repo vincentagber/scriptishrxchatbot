@@ -76,10 +76,21 @@ class ClientService {
             });
         }
 
+        // Calculate total revenue
+        const revenue = revenueRaw.reduce((acc, curr) => {
+            // Mock logic: Wellness=50, Luggage=15, Work=25, Default=30
+            const p = (curr.purpose || '').toLowerCase();
+            let val = 29.99;
+            if (p.includes('wellness')) val = 49.99;
+            else if (p.includes('luggage')) val = 14.99;
+            else if (p.includes('work')) val = 24.99;
+            return acc + val;
+        }, 0);
+
         return {
             totalClients,
             bookingsCount,
-            revenue,
+            revenue: Math.round(revenue),
             voiceInteractions: 0,
             topServices: topServices.map(s => ({
                 name: s.purpose,
