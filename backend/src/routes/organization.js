@@ -1,0 +1,533 @@
+// backend/src/routes/organization.js
+/**
+ * Organization Management Routes
+ * Handles: Invites, Team Management, Organization Settings
+ */
+
+const express = require('express');
+const router = express.Router();
+const prisma = require('../lib/prisma');
+const crypto = require('crypto');
+const { authenticateToken } = require('../middleware/auth');
+const { checkPermission, requireOwnerOrAdmin, verifyTenantAccess } = require('../middleware/permissions');
+
+// ========== ORGANIZATION INVITES ==========
+
+/**
+ * POST /api/organization/invite
+ * Invite a user to join the organization
+ */
+router.post('/invite',
+    authenticateToken,
+    checkPermission('users', 'invite'),
+    async (req, res) => {
+        try {
+            const { email, role } = req.body;
+            const tenantId = req.user?.tenantId;
+            const invitedBy = req.user?.userId || req.user?.id;
+
+            if (!email || !role) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Email and role are required'
+                });
+            }
+
+            // Validate role
+            const validRoles = ['ADMIN', 'MANAGER', 'MEMBER'];
+            if (!validRoles.includes(role)) {
+                return res.status(400).json({
+                    success: false,
+                    error: `Invalid role. Must be one of: ${validRoles.join(', ')}`
+                });
+            }
+
+            // Check if user already exists in this organization
+            const existingUser = await prisma.user.findFirst({
+                where: {
+                    email,
+                    tenantId
+                }
+            });
+
+            if (existingUser) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'User already exists in this organization'
+                });
+            }
+
+            // Check if invite already exists
+            const existingInvite = await prisma.invite.findFirst({
+                where: {
+                    email,
+                    tenantId,
+                    acceptedAt: null,
+                    expiresAt: {
+                        gt: new Date()
+                    }
+                }
+            });
+
+            if (existingInvite) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'An active invite already exists for this email'
+                });
+            }
+
+            // Generate unique invite token
+            const token = crypto.randomBytes(32).toString('hex');
+            const expiresAt = new Date();
+            expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiry
+
+            // Create invite
+            const invite = await prisma.invite.create({
+                data: {
+                    email,
+                    role,
+                    token,
+                    expiresAt,
+                    createdBy: invitedBy,
+                    tenantId
+                },
+                include: {
+                    tenant: true
+                }
+            });
+
+            // TODO: Send invite email with token
+            // For now, return the invite link
+            const inviteLink = `${process.env.FRONTEND_URL}/register?invite=${token}`;
+
+            res.json({
+                success: true,
+                invite: {
+                    id: invite.id,
+                    email: invite.email,
+                    role: invite.role,
+                    expiresAt: invite.expiresAt,
+                    inviteLink, // In production, this should be sent via email
+                    organization: invite.tenant.name
+                },
+                message: 'Invite created successfully. Send this link to the user.'
+            });
+        } catch (error) {
+            console.error('Error creating invite:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to create invite'
+            });
+        }
+    }
+);
+
+/**
+ * GET /api/organization/invites
+ * List all pending invites for the organization
+ */
+router.get('/invites',
+    authenticateToken,
+    requireOwnerOrAdmin,
+    async (req, res) => {
+        try {
+            const tenantId = req.user?.tenantId;
+
+            const invites = await prisma.invite.findMany({
+                where: {
+                    tenantId,
+                    acceptedAt: null
+                },
+                orderBy: {
+                    createdAt: 'desc'
+                }
+            });
+
+            res.json({
+                success: true,
+                invites: invites.map(inv => ({
+                    id: inv.id,
+                    email: inv.email,
+                    role: inv.role,
+                    createdAt: inv.createdAt,
+                    expiresAt: inv.expiresAt,
+                    isExpired: new Date() > inv.expiresAt
+                }))
+            });
+        } catch (error) {
+            console.error('Error fetching invites:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to fetch invites'
+            });
+        }
+    }
+);
+
+/**
+ * DELETE /api/organization/invite/:inviteId
+ * Cancel a pending invite
+ */
+router.delete('/invite/:inviteId',
+    authenticateToken,
+    requireOwnerOrAdmin,
+    async (req, res) => {
+        try {
+            const { inviteId } = req.params;
+            const tenantId = req.user?.tenantId;
+
+            const invite = await prisma.invite.findUnique({
+                where: { id: inviteId }
+            });
+
+            if (!invite) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Invite not found'
+                });
+            }
+
+            if (invite.tenantId !== tenantId) {
+                return res.status(403).json({
+                    success: false,
+                    error: 'Access denied'
+                });
+            }
+
+            await prisma.invite.delete({
+                where: { id: inviteId }
+            });
+
+            res.json({
+                success: true,
+                message: 'Invite cancelled'
+            });
+        } catch (error) {
+            console.error('Error cancelling invite:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to cancel invite'
+            });
+        }
+    }
+);
+
+/**
+ * GET /api/organization/invite/verify/:token
+ * Verify an invite token (public route for registration)
+ */
+router.get('/invite/verify/:token', async (req, res) => {
+    try {
+        const { token } = req.params;
+
+        const invite = await prisma.invite.findUnique({
+            where: { token },
+            include: {
+                tenant: true
+            }
+        });
+
+        if (!invite) {
+            return res.status(404).json({
+                success: false,
+                error: 'Invalid invite token'
+            });
+        }
+
+        if (invite.acceptedAt) {
+            return res.status(400).json({
+                success: false,
+                error: 'This invite has already been accepted'
+            });
+        }
+
+        if (new Date() > invite.expiresAt) {
+            return res.status(400).json({
+                success: false,
+                error: 'This invite has expired'
+            });
+        }
+
+        res.json({
+            success: true,
+            invite: {
+                email: invite.email,
+                role: invite.role,
+                organization: invite.tenant.name,
+                expiresAt: invite.expiresAt
+            }
+        });
+    } catch (error) {
+        console.error('Error verifying invite:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to verify invite'
+        });
+    }
+});
+
+// ========== TEAM MANAGEMENT ==========
+
+/**
+ * GET /api/organization/team
+ * Get all team members
+ */
+router.get('/team',
+    authenticateToken,
+    verifyTenantAccess,
+    async (req, res) => {
+        try {
+            const tenantId = req.user?.tenantId;
+
+            const users = await prisma.user.findMany({
+                where: { tenantId },
+                select: {
+                    id: true,
+                    email: true,
+                    name: true,
+                    role: true,
+                    createdAt: true,
+                    avatarUrl: true,
+                    phoneNumber: true
+                },
+                orderBy: {
+                    createdAt: 'asc'
+                }
+            });
+
+            res.json({
+                success: true,
+                team: users
+            });
+        } catch (error) {
+            console.error('Error fetching team:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to fetch team members'
+            });
+        }
+    }
+);
+
+/**
+ * PATCH /api/organization/team/:userId/role
+ * Update a team member's role
+ */
+router.patch('/team/:userId/role',
+    authenticateToken,
+    requireOwnerOrAdmin,
+    async (req, res) => {
+        try {
+            const { userId } = req.params;
+            const { role } = req.body;
+            const tenantId = req.user?.tenantId;
+            const currentUserId = req.user?.userId || req.user?.id;
+
+            // Cannot change your own role
+            if (userId === currentUserId) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'You cannot change your own role'
+                });
+            }
+
+            // Validate role
+            const validRoles = ['ADMIN', 'MANAGER', 'MEMBER'];
+            if (!validRoles.includes(role)) {
+                return res.status(400).json({
+                    success: false,
+                    error: `Invalid role. Must be one of: ${validRoles.join(', ')}`
+                });
+            }
+
+            const user = await prisma.user.findUnique({
+                where: { id: userId }
+            });
+
+            if (!user || user.tenantId !== tenantId) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'User not found in your organization'
+                });
+            }
+
+            // Cannot change owner's role
+            if (user.role === 'OWNER') {
+                return res.status(403).json({
+                    success: false,
+                    error: 'Cannot change the owner\'s role'
+                });
+            }
+
+            await prisma.user.update({
+                where: { id: userId },
+                data: { role }
+            });
+
+            res.json({
+                success: true,
+                message: `User role updated to ${role}`
+            });
+        } catch (error) {
+            console.error('Error updating role:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to update role'
+            });
+        }
+    }
+);
+
+/**
+ * DELETE /api/organization/team/:userId
+ * Remove a team member
+ */
+router.delete('/team/:userId',
+    authenticateToken,
+    checkPermission('users', 'delete'),
+    async (req, res) => {
+        try {
+            const { userId } = req.params;
+            const tenantId = req.user?.tenantId;
+            const currentUserId = req.user?.userId || req.user?.id;
+
+            // Cannot delete yourself
+            if (userId === currentUserId) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'You cannot remove yourself'
+                });
+            }
+
+            const user = await prisma.user.findUnique({
+                where: { id: userId }
+            });
+
+            if (!user || user.tenantId !== tenantId) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'User not found in your organization'
+                });
+            }
+
+            // Cannot delete owner
+            if (user.role === 'OWNER') {
+                return res.status(403).json({
+                    success: false,
+                    error: 'Cannot remove the organization owner'
+                });
+            }
+
+            await prisma.user.delete({
+                where: { id: userId }
+            });
+
+            res.json({
+                success: true,
+                message: 'Team member removed'
+            });
+        } catch (error) {
+            console.error('Error removing team member:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to remove team member'
+            });
+        }
+    }
+);
+
+// ========== ORGANIZATION SETTINGS ==========
+
+/**
+ * GET /api/organization/info
+ * Get organization information
+ */
+router.get('/info',
+    authenticateToken,
+    verifyTenantAccess,
+    async (req, res) => {
+        try {
+            const tenantId = req.user?.tenantId;
+
+            const tenant = await prisma.tenant.findUnique({
+                where: { id: tenantId }
+            });
+
+            if (!tenant) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Organization not found'
+                });
+            }
+
+            res.json({
+                success: true,
+                organization: {
+                    id: tenant.id,
+                    name: tenant.name,
+                    location: tenant.location,
+                    timezone: tenant.timezone,
+                    phoneNumber: tenant.phoneNumber,
+                    plan: tenant.plan,
+                    brandColor: tenant.brandColor,
+                    logoUrl: tenant.logoUrl,
+                    aiName: tenant.aiName,
+                    aiWelcomeMessage: tenant.aiWelcomeMessage,
+                    customSystemPrompt: tenant.customSystemPrompt,
+                    createdAt: tenant.createdAt
+                }
+            });
+        } catch (error) {
+            console.error('Error fetching organization:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to fetch organization'
+            });
+        }
+    }
+);
+
+/**
+ * PATCH /api/organization/info
+ * Update organization information
+ */
+router.patch('/info',
+    authenticateToken,
+    checkPermission('organization', 'update'),
+    async (req, res) => {
+        try {
+            const tenantId = req.user?.tenantId;
+            const { name, location, timezone, phoneNumber, brandColor, logoUrl, aiName, aiWelcomeMessage, customSystemPrompt } = req.body;
+
+            const updateData = {};
+            if (name !== undefined) updateData.name = name;
+            if (location !== undefined) updateData.location = location;
+            if (timezone !== undefined) updateData.timezone = timezone;
+            if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
+            if (brandColor !== undefined) updateData.brandColor = brandColor;
+            if (logoUrl !== undefined) updateData.logoUrl = logoUrl;
+            if (aiName !== undefined) updateData.aiName = aiName;
+            if (aiWelcomeMessage !== undefined) updateData.aiWelcomeMessage = aiWelcomeMessage;
+            if (customSystemPrompt !== undefined) updateData.customSystemPrompt = customSystemPrompt;
+
+            const tenant = await prisma.tenant.update({
+                where: { id: tenantId },
+                data: updateData
+            });
+
+            res.json({
+                success: true,
+                organization: tenant,
+                message: 'Organization updated successfully'
+            });
+        } catch (error) {
+            console.error('Error updating organization:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to update organization'
+            });
+        }
+    }
+);
+
+module.exports = router;

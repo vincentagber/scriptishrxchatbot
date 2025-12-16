@@ -67,16 +67,25 @@ async function addToHistory(tenantId, role, content, metadata = {}) {
  */
 async function callOpenAI(messages, tenantId) {
     try {
+        // Get tenant-specific configuration
+        const tenant = await prisma.tenant.findUnique({
+            where: { id: tenantId }
+        });
+
+        // Use custom system prompt from tenant settings, or default to business-neutral template
+        const systemPrompt = tenant?.customSystemPrompt || generateDefaultPrompt(tenant);
+
         // Get conversation context
-        const context = getConversationContext(tenantId, 10);
+        const context = await getChatHistory(tenantId);
+        const recentContext = context.slice(-10); // Last 10 messages
 
         // Build messages array for OpenAI
         const openaiMessages = [
             {
                 role: 'system',
-                content: 'You are a helpful AI assistant for ScriptishRx, a healthcare appointment and booking system. Be concise, friendly, and professional.'
+                content: systemPrompt
             },
-            ...context.map(msg => ({
+            ...recentContext.map(msg => ({
                 role: msg.role === 'user' ? 'user' : 'assistant',
                 content: msg.content
             }))
@@ -384,8 +393,59 @@ async function clearChatHistory(tenantId) {
  * Get conversation context for AI (last N messages)
  */
 function getConversationContext(tenantId, limit = 10) {
-    const history = getChatHistory(tenantId);
-    return history.slice(-limit);
+    // This is now deprecated in favor of getChatHistory
+    return getChatHistory(tenantId).then(history => history.slice(-limit));
+}
+
+/**
+ * Generate default system prompt based on tenant configuration
+ */
+function generateDefaultPrompt(tenant) {
+    if (!tenant) {
+        return `You are a helpful AI assistant. Be friendly, professional, and concise in your responses. Help users with their questions about bookings, services, and general inquiries.`;
+    }
+
+    const businessName = tenant.name || 'our business';
+    const aiName = tenant.aiName || 'AI Assistant';
+    const welcomeMessage = tenant.aiWelcomeMessage || `Welcome to ${tenant.name}! How can I help you today?`;
+
+    // Industry-specific templates (can be extended)
+    const industryPrompts = {
+        wellness: `You are ${aiName}, the AI assistant for ${businessName}, a wellness and health business. Your role is to:
+- Help customers book appointments and services
+- Answer questions about our wellness services, pricing, and availability
+- Provide friendly, health-conscious guidance
+- Direct complex medical questions to our professionals
+- Maintain a calm, supportive, and professional tone
+Be concise, empathetic, and always protect client privacy.`,
+
+        travel: `You are ${aiName}, the AI assistant for ${businessName}, a travel and booking service. Your role is to:
+- Assist with travel bookings and itinerary questions
+- Provide information about destinations, pricing, and availability
+- Help with reservation modifications and inquiries
+- Offer friendly travel recommendations
+- Maintain an enthusiastic and helpful tone
+Be concise, informative, and inspire wanderlust.`,
+
+        retail: `You are ${aiName}, the AI assistant for ${businessName}. Your role is to:
+- Help customers find products and services
+- Answer questions about inventory, pricing, and availability
+- Assist with order tracking and inquiries
+- Provide excellent customer service
+- Maintain a friendly and professional tone
+Be helpful, knowledgeable, and drive positive customer experiences.`,
+
+        default: `You are ${aiName}, the AI assistant for ${businessName}. Your role is to:
+- Help customers with bookings, appointments, and inquiries
+- Answer questions about services, pricing, and availability
+- Provide friendly and professional customer support
+- Direct complex issues to human staff when needed
+- Maintain a helpful and approachable tone
+Be concise, professional, and always put the customer first.`
+    };
+
+    // Return default prompt (can be enhanced to detect industry from tenant settings)
+    return industryPrompts.default;
 }
 
 /**

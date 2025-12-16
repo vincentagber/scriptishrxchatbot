@@ -261,9 +261,9 @@ export default function ChatInterface({ tenantId: propTenantId, token, isDashboa
                         </div>
                     </div>
                 ) : (
-                    messages.map((msg, index) => (
+                    messages.map((msg) => (
                         <div
-                            key={index}
+                            key={msg.id}
                             className={cn(
                                 "flex w-full animate-in fade-in slide-in-from-bottom-2 duration-300",
                                 msg.role === 'user' ? "justify-end" : "justify-start"

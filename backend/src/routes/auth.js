@@ -26,7 +26,7 @@ const generateTokens = (user) => {
             userId: user.id,
             email: user.email,
             role: user.role,
-            tenantId: user.tenantId  
+            tenantId: user.tenantId
         },
         JWT_SECRET,
         { expiresIn: '24h' }  // 24h is better than 15m for dashboard use
@@ -35,7 +35,7 @@ const generateTokens = (user) => {
     const refreshToken = jwt.sign(
         {
             userId: user.id,
-            tenantId: user.tenantId  
+            tenantId: user.tenantId
         },
         REFRESH_SECRET,
         { expiresIn: '7d' }
@@ -44,20 +44,85 @@ const generateTokens = (user) => {
     return { accessToken, refreshToken };
 };
 
-// Register — unchanged (already perfect)
+// Register — supports both new organization creation and invite-based join
 router.post('/register', async (req, res) => {
     try {
         const validated = registerSchema.parse(req.body);
-        const { email, password, name, companyName, location, timezone } = validated;
+        const { email, password, name, companyName, location, timezone, inviteToken } = validated;
 
         const existingUser = await prisma.user.findUnique({ where: { email } });
         if (existingUser) return res.status(400).json({ error: 'User already exists' });
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
+        // INVITE-BASED REGISTRATION (Join existing organization)
+        if (inviteToken) {
+            const invite = await prisma.invite.findUnique({
+                where: { token: inviteToken },
+                include: { tenant: true }
+            });
+
+            if (!invite) {
+                return res.status(400).json({ error: 'Invalid invite token' });
+            }
+
+            if (invite.acceptedAt) {
+                return res.status(400).json({ error: 'Invite has already been used' });
+            }
+
+            if (new Date() > invite.expiresAt) {
+                return res.status(400).json({ error: 'Invite has expired' });
+            }
+
+            if (invite.email !== email) {
+                return res.status(400).json({ error: 'Email does not match invite' });
+            }
+
+            // Create user in existing organization
+            const user = await prisma.$transaction(async (prisma) => {
+                const newUser = await prisma.user.create({
+                    data: {
+                        email,
+                        password: hashedPassword,
+                        name,
+                        role: invite.role, // Use role from invite
+                        tenantId: invite.tenantId
+                    }
+                });
+
+                // Mark invite as accepted
+                await prisma.invite.update({
+                    where: { id: invite.id },
+                    data: { acceptedAt: new Date() }
+                });
+
+                return newUser;
+            });
+
+            const { accessToken, refreshToken } = generateTokens(user);
+            res.cookie('refresh_token', refreshToken, COOKIE_OPTIONS);
+
+            return res.status(201).json({
+                token: accessToken,
+                user: {
+                    id: user.id,
+                    email: user.email,
+                    name: user.name,
+                    role: user.role,
+                    tenantId: invite.tenantId
+                },
+                tenant: {
+                    id: invite.tenant.id,
+                    name: invite.tenant.name
+                },
+                joinedViaInvite: true
+            });
+        }
+
+        // STANDARD REGISTRATION (New organization)
         const result = await prisma.$transaction(async (prisma) => {
             const tenant = await prisma.tenant.create({
-                data: { name: companyName, location, timezone },
+                data: { name: companyName || name + "'s Organization", location, timezone },
             });
             const user = await prisma.user.create({
                 data: {
@@ -75,7 +140,7 @@ router.post('/register', async (req, res) => {
             await prisma.subscription.create({
                 data: {
                     userId: user.id,
-                    plan: 'Trial', // Was 'Basic'
+                    plan: 'Trial',
                     status: 'Active',
                     endDate: trialEndDate
                 },

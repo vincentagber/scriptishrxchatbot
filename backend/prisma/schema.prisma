@@ -37,6 +37,7 @@ model Tenant {
   messages         Message[]
   workflows        Workflow[]
   campaigns        Campaign[]
+  invites          Invite[]
 
   @@index([name])
 }
@@ -192,5 +193,22 @@ model Campaign {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
+  @@index([tenantId])
+}
+
+model Invite {
+  id         String    @id @default(uuid())
+  tenantId   String
+  tenant     Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  email      String
+  role       String
+  token      String    @unique
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  createdBy  String
+  createdAt  DateTime  @default(now())
+
+  @@index([token])
+  @@index([email])
   @@index([tenantId])
 }

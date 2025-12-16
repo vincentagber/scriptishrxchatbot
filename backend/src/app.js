@@ -52,6 +52,7 @@ const uploadRouter = require('./routes/upload');
 const voiceRouter = require('./routes/voice');
 const webhooksRouter = require('./routes/webhooks');
 const marketingRouter = require('./routes/marketing');
+const organizationRouter = require('./routes/organization');
 
 // Load AI Chat routes
 let chatAIRouter;
@@ -252,6 +253,7 @@ app.use('/api/voice', voiceRouter);
 app.use('/api/voicecake', voiceCakeRouter);
 app.use('/webhooks', webhooksRouter);
 app.use('/api/marketing', marketingRouter);
+app.use('/api/organization', organizationRouter);
 
 const os = require('os');
 
