@@ -30,12 +30,12 @@ export default function VoicePage() {
         const headers: HeadersInit = {
             'Content-Type': 'application/json'
         };
-        
+
         const token = getToken();
         if (token) {
             headers['Authorization'] = `Bearer ${token}`;
         }
-        
+
         return headers;
     };
 
@@ -67,7 +67,7 @@ export default function VoicePage() {
                 const contentType = res.headers.get("content-type");
                 if (contentType && contentType.indexOf("application/json") !== -1) {
                     const data = await res.json();
-                    
+
                     // Handle different response structures
                     let logsArray = [];
                     if (Array.isArray(data)) {
@@ -77,7 +77,7 @@ export default function VoicePage() {
                     } else if (data.success && data.logs) {
                         logsArray = data.logs;
                     }
-                    
+
                     setLogs(logsArray);
                     console.log('Fetched logs:', logsArray.length, 'entries');
                 }
@@ -91,7 +91,7 @@ export default function VoicePage() {
 
     const handleCall = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         // Validate phone number before making request
         const cleanPhone = phoneNumber.trim();
         if (!cleanPhone) {
@@ -118,15 +118,15 @@ export default function VoicePage() {
             const res = await fetch(`${API_URL}/api/voice/outbound`, {
                 method: 'POST',
                 headers: getHeaders(),
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     to: cleanPhone,
-                    context: { source: 'dashboard_test' } 
+                    context: { source: 'dashboard_test' }
                 }),
             });
 
             let data;
             const contentType = res.headers.get('content-type');
-            
+
             try {
                 // Only parse as JSON if response is actually JSON
                 if (contentType && contentType.includes('application/json')) {
@@ -160,39 +160,39 @@ export default function VoicePage() {
                 if (res.status === 404) {
                     throw new Error('API endpoint not found. Check backend routes.');
                 }
-                
+
                 // Extract error message from various possible response structures
                 let errorMsg = 'Request failed';
-                
+
                 if (typeof data === 'string') {
                     errorMsg = data;
                 } else if (data && typeof data === 'object') {
                     // Check multiple possible error fields
-                    errorMsg = data.error || 
-                              data.message || 
-                              data.details || 
-                              data.errorMessage ||
-                              JSON.stringify(data);
+                    errorMsg = data.error ||
+                        data.message ||
+                        data.details ||
+                        data.errorMessage ||
+                        JSON.stringify(data);
                 }
-                
+
                 // Check for specific error messages
-                if (errorMsg.includes('No voice agent configured') || 
+                if (errorMsg.includes('No voice agent configured') ||
                     errorMsg.includes('agent')) {
                     setAgentConfigured(false);
                 }
-                
+
                 // Add status code to message if not already included
                 if (!errorMsg.includes(res.status.toString())) {
                     errorMsg = `${errorMsg} (Status: ${res.status})`;
                 }
-                
+
                 console.error('API Error Details:', {
                     status: res.status,
                     statusText: res.statusText,
                     responseData: data,
                     extractedError: errorMsg
                 });
-                
+
                 throw new Error(errorMsg);
             }
 
@@ -201,7 +201,7 @@ export default function VoicePage() {
             setFeedbackMessage(data.message || 'Call initiated successfully!');
             setAgentConfigured(true);
             setPhoneNumber('');
-            
+
             // Refresh logs after successful call
             setTimeout(() => {
                 fetchLogs();
@@ -214,20 +214,48 @@ export default function VoicePage() {
         } catch (error: any) {
             console.error('Call initiation error:', error);
             setCallStatus('error');
-            
+
             // Provide more specific error messages
             let userMessage = error.message;
             if (error.message.includes('fetch')) {
                 userMessage = 'Cannot connect to server. Is the backend running?';
             }
-            
+
             setFeedbackMessage(userMessage || 'Failed to initiate call. Check console.');
-            
+
             setTimeout(() => {
                 setCallStatus('idle');
             }, 5000);
         } finally {
             setIsCalling(false);
+        }
+    };
+
+
+    const [inboundPhone, setInboundPhone] = useState('');
+    const [inboundLoading, setInboundLoading] = useState(false);
+
+    const handleInboundConfig = async () => {
+        if (!inboundPhone) return;
+        setInboundLoading(true);
+        try {
+            const res = await fetch(`${API_URL}/api/voicecake/inbound-config`, {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify({ phoneNumber: inboundPhone })
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert(data.message);
+                setInboundPhone('');
+            } else {
+                alert('Failed: ' + data.error);
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Error configuring inbound number');
+        } finally {
+            setInboundLoading(false);
         }
     };
 
@@ -321,7 +349,7 @@ export default function VoicePage() {
                         </div>
                         <h3 className="font-bold text-gray-900 text-lg">Test Voice System</h3>
                         <p className="text-sm text-gray-500">
-                            {isMockMode 
+                            {isMockMode
                                 ? 'Simulate a test call (no auth required in mock mode)'
                                 : 'Initiate a test call to verify the agent'
                             }
@@ -359,13 +387,47 @@ export default function VoicePage() {
                         )}
                     </form>
                 </div>
+                {/* Inbound Configuration Card */}
+                <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col">
+                    <div className="mb-4">
+                        <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center text-green-600 mb-3">
+                            <Phone className="w-6 h-6" />
+                        </div>
+                        <h3 className="font-bold text-gray-900 text-lg">Inbound Configuration</h3>
+                        <p className="text-sm text-gray-500">
+                            Configure a number for your agent to answer incoming calls.
+                        </p>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div>
+                            <Input
+                                placeholder="+1 (555) 000-0000"
+                                value={inboundPhone}
+                                onChange={(e) => setInboundPhone(e.target.value)}
+                                className="bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400 focus-visible:ring-green-500"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">Number to assign to this agent</p>
+                        </div>
+                        <Button
+                            className="w-full bg-green-600 hover:bg-green-700"
+                            onClick={handleInboundConfig}
+                            disabled={inboundLoading || !inboundPhone}
+                        >
+                            {inboundLoading ? 'Saving...' : 'Save & Configure Inbound'}
+                        </Button>
+                        <p className="text-xs text-center text-gray-400">
+                            Webhook: {API_URL}/api/webhooks/voice
+                        </p>
+                    </div>
+                </div>
             </div>
 
             {/* Call Logs */}
             <div className="bg-white rounded-3xl shadow-sm overflow-hidden border border-gray-100">
                 <div className="p-6 border-b border-gray-100 flex justify-between items-center">
                     <h3 className="font-bold text-gray-900">Recent Calls</h3>
-                    <button 
+                    <button
                         onClick={async () => {
                             setLoading(true);
                             await fetchLogs();
@@ -420,33 +482,32 @@ export default function VoicePage() {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                                log.status === 'completed' ? 'bg-green-50 text-green-700' :
+                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${log.status === 'completed' ? 'bg-green-50 text-green-700' :
                                                 log.status === 'initiated' ? 'bg-blue-50 text-blue-700' :
-                                                log.status === 'failed' ? 'bg-red-50 text-red-700' :
-                                                'bg-gray-50 text-gray-700'
-                                            }`}>
+                                                    log.status === 'failed' ? 'bg-red-50 text-red-700' :
+                                                        'bg-gray-50 text-gray-700'
+                                                }`}>
                                                 {log.status || 'Completed'}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
                                             <p className="text-sm text-gray-600 max-w-xs truncate">
-                                                {log.summary || log.transcript || 
-                                                 (log.mockMode ? 'Mock call - simulated in development' : 'No summary available')}
+                                                {log.summary || log.transcript ||
+                                                    (log.mockMode ? 'Mock call - simulated in development' : 'No summary available')}
                                             </p>
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-500">
-                                            {log.timestamp 
+                                            {log.timestamp
                                                 ? new Date(log.timestamp).toLocaleString()
-                                                : log.createdAt 
-                                                ? new Date(log.createdAt).toLocaleString()
-                                                : 'Just now'}
+                                                : log.createdAt
+                                                    ? new Date(log.createdAt).toLocaleString()
+                                                    : 'Just now'}
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             {log.recordingUrl ? (
-                                                <a 
-                                                    href={log.recordingUrl} 
-                                                    target="_blank" 
+                                                <a
+                                                    href={log.recordingUrl}
+                                                    target="_blank"
                                                     rel="noopener noreferrer"
                                                     className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-900 inline-flex"
                                                 >

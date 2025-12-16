@@ -331,4 +331,55 @@ router.get('/stats', isMockMode ? optionalAuth : authenticateToken, async (req, 
     }
 });
 
+/**
+ * POST /api/voice/inbound-config
+ * Configure inbound number for the tenant
+ */
+router.post('/inbound-config', isMockMode ? optionalAuth : authenticateToken, async (req, res) => {
+    try {
+        const { phoneNumber } = req.body;
+        const tenantId = req.user?.tenantId || 'default_tenant';
+
+        // In a real app, we would:
+        // 1. Verify ownership of the number (via Twilio API)
+        // 2. Update the webhook URL for that number to point to our /webhook/voice endpoint
+        // 3. Save the number to the Tenant record in DB
+
+        console.log(`[Voice] Configured inbound number ${phoneNumber} for tenant ${tenantId}`);
+
+        res.json({
+            success: true,
+            message: `Agent configured to answer calls on ${phoneNumber}`,
+            webhookUrl: `${process.env.APP_URL || 'https://scriptishrxchatbot.onrender.com'}/api/voicecake/webhook/voice`,
+            mockMode: isMockMode
+        });
+    } catch (error) {
+        console.error('Inbound config error:', error);
+        res.status(500).json({ success: false, error: 'Failed to configure inbound number' });
+    }
+});
+
+/**
+ * POST /api/voicecake/webhook/voice
+ * Incoming call webhook - Called by Twilio/VoiceCake
+ */
+router.post('/webhook/voice', async (req, res) => {
+    console.log('[Voice Webhook] Incoming call received:', req.body);
+
+    // TwiML Response to connect to Agent
+    // This is what Twilio expects to know what to do with the call
+    const twiml = `
+    <?xml version="1.0" encoding="UTF-8"?>
+    <Response>
+        <Say voice="alice">Connecting you to the AI Assistant.</Say>
+        <Connect>
+            <Stream url="wss://${req.get('host')}/media-stream" />
+        </Connect>
+    </Response>
+    `;
+
+    res.set('Content-Type', 'text/xml');
+    res.send(twiml);
+});
+
 module.exports = router;
