@@ -16,7 +16,7 @@ export default function InsightsPage() {
     const fetchInsights = async () => {
         const token = localStorage.getItem('token');
         try {
-            const res = await fetch('http://localhost:5000/api/insights', {
+            const res = await fetch('/api/insights', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
