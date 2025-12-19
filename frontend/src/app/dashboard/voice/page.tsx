@@ -1,11 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Phone, Mic, Activity, Clock, Play, PhoneOutgoing, AlertCircle, CheckCircle } from 'lucide-react';
+import { Phone, Mic, Activity, Save, Play, PhoneOutgoing, Settings, MessageSquare, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
+interface AIConfig {
+    aiName: string;
+    welcomeMessage: string;
+    customSystemPrompt: string;
+    model?: string;
+}
 
 export default function VoicePage() {
     const [logs, setLogs] = useState<any[]>([]);
@@ -14,8 +21,15 @@ export default function VoicePage() {
     const [isCalling, setIsCalling] = useState(false);
     const [callStatus, setCallStatus] = useState<'idle' | 'success' | 'error'>('idle');
     const [feedbackMessage, setFeedbackMessage] = useState('');
-    const [agentConfigured, setAgentConfigured] = useState(true);
-    const [isMockMode, setIsMockMode] = useState(false);
+
+    // AI Configuration State
+    const [aiConfig, setAiConfig] = useState<AIConfig>({
+        aiName: '',
+        welcomeMessage: '',
+        customSystemPrompt: '',
+        model: 'gpt-4'
+    });
+    const [isSaving, setIsSaving] = useState(false);
 
     // Get token from localStorage
     const getToken = () => {
@@ -25,36 +39,44 @@ export default function VoicePage() {
         return null;
     };
 
-    // Create headers with authentication
     const getHeaders = () => {
         const headers: HeadersInit = {
             'Content-Type': 'application/json'
         };
-
         const token = getToken();
-        if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-        }
-
+        if (token) headers['Authorization'] = `Bearer ${token}`;
         return headers;
     };
 
     useEffect(() => {
-        fetchLogs();
-        checkMockMode();
+        fetchData();
     }, []);
 
-    const checkMockMode = async () => {
+    const fetchData = async () => {
+        await Promise.all([fetchOrgInfo(), fetchLogs()]);
+        setLoading(false);
+    };
+
+    const fetchOrgInfo = async () => {
         try {
-            const res = await fetch(`${API_URL}/api/voicecake/tenant/agent`, {
+            const res = await fetch(`${API_URL}/api/organization/info`, {
                 headers: getHeaders()
             });
             if (res.ok) {
                 const data = await res.json();
-                setIsMockMode(data.mockMode === true);
+                if (data.success && data.organization) {
+                    const org = data.organization;
+                    // Merge legacy fields and new JSON config if present
+                    setAiConfig({
+                        aiName: org.aiConfig?.aiName || org.aiName || 'ScriptishRx Assistant',
+                        welcomeMessage: org.aiConfig?.welcomeMessage || org.aiWelcomeMessage || 'Hello, how can I help you today?',
+                        customSystemPrompt: org.aiConfig?.systemPrompt || org.customSystemPrompt || 'You are a helpful assistant.',
+                        model: org.aiConfig?.model || 'gpt-4'
+                    });
+                }
             }
         } catch (error) {
-            console.error('Error checking mock mode:', error);
+            console.error('Error fetching org info:', error);
         }
     };
 
@@ -64,460 +86,279 @@ export default function VoicePage() {
                 headers: getHeaders()
             });
             if (res.ok) {
-                const contentType = res.headers.get("content-type");
-                if (contentType && contentType.indexOf("application/json") !== -1) {
-                    const data = await res.json();
+                const data = await res.json();
+                let logsArray = [];
+                if (Array.isArray(data)) logsArray = data;
+                else if (data.logs) logsArray = data.logs;
 
-                    // Handle different response structures
-                    let logsArray = [];
-                    if (Array.isArray(data)) {
-                        logsArray = data;
-                    } else if (data.logs && Array.isArray(data.logs)) {
-                        logsArray = data.logs;
-                    } else if (data.success && data.logs) {
-                        logsArray = data.logs;
-                    }
-
-                    setLogs(logsArray);
-                    console.log('Fetched logs:', logsArray.length, 'entries');
-                }
+                setLogs(logsArray);
             }
         } catch (error) {
-            console.error('Error fetching voice logs:', error);
+            console.error('Error fetching logs:', error);
+        }
+    };
+
+    const handleSaveConfig = async () => {
+        setIsSaving(true);
+        try {
+            // Update Organization with new AI Config
+            const res = await fetch(`${API_URL}/api/organization/info`, {
+                method: 'PATCH',
+                headers: getHeaders(),
+                body: JSON.stringify({
+                    // Update legacy fields for compatibility
+                    aiName: aiConfig.aiName,
+                    aiWelcomeMessage: aiConfig.welcomeMessage,
+                    customSystemPrompt: aiConfig.customSystemPrompt,
+                    // Update new JSON config for advanced features
+                    aiConfig: {
+                        aiName: aiConfig.aiName,
+                        welcomeMessage: aiConfig.welcomeMessage,
+                        systemPrompt: aiConfig.customSystemPrompt,
+                        model: aiConfig.model
+                    }
+                })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                if (data.success) {
+                    alert('AI Agent configuration saved successfully!');
+                }
+            } else {
+                alert('Failed to save configuration');
+            }
+        } catch (error) {
+            console.error('Error saving config:', error);
+            alert('Error saving configuration');
         } finally {
-            setLoading(false);
+            setIsSaving(false);
         }
     };
 
     const handleCall = async (e: React.FormEvent) => {
         e.preventDefault();
-
-        // Validate phone number before making request
         const cleanPhone = phoneNumber.trim();
-        if (!cleanPhone) {
-            setCallStatus('error');
-            setFeedbackMessage('Please enter a phone number');
-            setTimeout(() => setCallStatus('idle'), 3000);
-            return;
-        }
-
-        // Basic phone validation (must start with + and contain digits)
-        const phoneRegex = /^\+?[1-9]\d{1,14}$/;
-        if (!phoneRegex.test(cleanPhone.replace(/[\s()-]/g, ''))) {
-            setCallStatus('error');
-            setFeedbackMessage('Invalid phone format. Use: +1234567890');
-            setTimeout(() => setCallStatus('idle'), 3000);
-            return;
-        }
+        if (!cleanPhone) return;
 
         setIsCalling(true);
         setCallStatus('idle');
-        setFeedbackMessage('');
 
         try {
             const res = await fetch(`${API_URL}/api/voice/outbound`, {
                 method: 'POST',
                 headers: getHeaders(),
-                body: JSON.stringify({
-                    to: cleanPhone,
-                    context: { source: 'dashboard_test' }
-                }),
+                body: JSON.stringify({ to: cleanPhone }),
             });
 
-            let data;
-            const contentType = res.headers.get('content-type');
-
-            try {
-                // Only parse as JSON if response is actually JSON
-                if (contentType && contentType.includes('application/json')) {
-                    data = await res.json();
-                } else {
-                    const text = await res.text();
-                    console.error('Non-JSON response:', text);
-                    throw new Error('Server returned non-JSON response. Check backend logs.');
-                }
-            } catch (jsonError) {
-                console.error('Failed to parse response:', jsonError);
-                throw new Error('Invalid server response. Is the backend running?');
-            }
-
-            // Log the actual response structure for debugging
-            console.log('API Response:', {
-                ok: res.ok,
-                status: res.status,
-                statusText: res.statusText,
-                data: data
-            });
+            const data = await res.json();
 
             if (!res.ok) {
-                // Handle authentication errors
-                if (res.status === 401) {
-                    throw new Error('Authentication required. Please login to make calls.');
-                }
-                if (res.status === 403) {
-                    throw new Error('Access denied. Please check your permissions.');
-                }
-                if (res.status === 404) {
-                    throw new Error('API endpoint not found. Check backend routes.');
-                }
-
-                // Extract error message from various possible response structures
-                let errorMsg = 'Request failed';
-
-                if (typeof data === 'string') {
-                    errorMsg = data;
-                } else if (data && typeof data === 'object') {
-                    // Check multiple possible error fields
-                    errorMsg = data.error ||
-                        data.message ||
-                        data.details ||
-                        data.errorMessage ||
-                        JSON.stringify(data);
-                }
-
-                // Check for specific error messages
-                if (errorMsg.includes('No voice agent configured') ||
-                    errorMsg.includes('agent')) {
-                    setAgentConfigured(false);
-                }
-
-                // Add status code to message if not already included
-                if (!errorMsg.includes(res.status.toString())) {
-                    errorMsg = `${errorMsg} (Status: ${res.status})`;
-                }
-
-                console.error('API Error Details:', {
-                    status: res.status,
-                    statusText: res.statusText,
-                    responseData: data,
-                    extractedError: errorMsg
-                });
-
-                throw new Error(errorMsg);
+                throw new Error(data.message || data.error || 'Call failed');
             }
 
-            // Success
             setCallStatus('success');
-            setFeedbackMessage(data.message || 'Call initiated successfully!');
-            setAgentConfigured(true);
+            setFeedbackMessage('Call initiated! Your AI agent will answer.');
             setPhoneNumber('');
 
-            // Refresh logs after successful call
-            setTimeout(() => {
-                fetchLogs();
-            }, 2000);
-
-            setTimeout(() => {
-                setCallStatus('idle');
-                setFeedbackMessage('');
-            }, 5000);
+            // Refresh logs
+            setTimeout(fetchLogs, 2000);
         } catch (error: any) {
-            console.error('Call initiation error:', error);
+            console.error('Call error:', error);
             setCallStatus('error');
-
-            // Provide more specific error messages
-            let userMessage = error.message;
-            if (error.message.includes('fetch')) {
-                userMessage = 'Cannot connect to server. Is the backend running?';
-            }
-
-            setFeedbackMessage(userMessage || 'Failed to initiate call. Check console.');
-
-            setTimeout(() => {
-                setCallStatus('idle');
-            }, 5000);
+            setFeedbackMessage(error.message);
         } finally {
             setIsCalling(false);
         }
     };
 
-
-    const [inboundPhone, setInboundPhone] = useState('');
-    const [inboundLoading, setInboundLoading] = useState(false);
-
-    const handleInboundConfig = async () => {
-        if (!inboundPhone) return;
-        setInboundLoading(true);
-        try {
-            const res = await fetch(`${API_URL}/api/voicecake/inbound-config`, {
-                method: 'POST',
-                headers: getHeaders(),
-                body: JSON.stringify({ phoneNumber: inboundPhone })
-            });
-            const data = await res.json();
-            if (data.success) {
-                alert(data.message);
-                setInboundPhone('');
-            } else {
-                alert('Failed: ' + data.error);
-            }
-        } catch (e) {
-            console.error(e);
-            alert('Error configuring inbound number');
-        } finally {
-            setInboundLoading(false);
-        }
-    };
-
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 max-w-7xl mx-auto">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Voice Agent</h1>
-                    <p className="text-gray-500">Monitor active calls and review call history.</p>
+                    <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Voice Agent Studio</h1>
+                    <p className="text-gray-500 mt-2">Customize your business's unique AI voice personality and behavior.</p>
                 </div>
             </div>
 
-            {/* Mock Mode Banner */}
-            {isMockMode && (
-                <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 flex items-start gap-4">
-                    <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                        <CheckCircle className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div className="flex-1">
-                        <h3 className="font-semibold text-blue-900 mb-2">Mock Mode Active</h3>
-                        <p className="text-sm text-blue-800">
-                            Running in development mode with simulated calls. Authentication not required for testing.
-                        </p>
-                    </div>
-                </div>
-            )}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
-            {/* Agent Configuration Warning */}
-            {!agentConfigured && (
-                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 flex items-start gap-4">
-                    <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                        <AlertCircle className="w-5 h-5 text-amber-600" />
-                    </div>
-                    <div className="flex-1">
-                        <h3 className="font-semibold text-amber-900 mb-2">Voice Agent Setup Required</h3>
-                        <p className="text-sm text-amber-800 mb-4">
-                            Your VoiceCake account doesn't have a voice agent configured yet. You need to set this up before making calls.
-                        </p>
-                        <div className="space-y-2 text-sm text-amber-900">
-                            <p className="font-medium">To configure your voice agent:</p>
-                            <ol className="list-decimal list-inside space-y-1 ml-2">
-                                <li>Log in to your <a href="https://voicecake.io" target="_blank" rel="noopener noreferrer" className="underline hover:text-amber-700">VoiceCake dashboard</a></li>
-                                <li>Navigate to "Agents" or "Voice Configuration"</li>
-                                <li>Create a new voice agent with your desired settings</li>
-                                <li>Configure the agent's personality, voice, and prompts</li>
-                                <li>Return here to test your agent</li>
-                            </ol>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Status Card */}
-                <div className="lg:col-span-2 bg-black text-white p-8 rounded-3xl shadow-sm relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full blur-3xl opacity-20 -mr-16 -mt-16"></div>
-                    <div className="relative z-10 flex items-center justify-between">
-                        <div>
-                            <div className="flex items-center space-x-2 mb-2">
-                                <span className={`w-2 h-2 rounded-full ${agentConfigured ? 'bg-green-400 animate-pulse' : 'bg-amber-400'}`}></span>
-                                <span className="text-sm font-medium text-gray-300">
-                                    {agentConfigured ? 'System Online' : 'Setup Required'}
-                                </span>
+                {/* Left Column: AI Configuration */}
+                <div className="lg:col-span-7 space-y-6">
+                    <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
+                        <div className="p-8 border-b border-gray-100 bg-slate-50/50">
+                            <div className="flex items-center gap-3 mb-2">
+                                <div className="p-2 bg-blue-100 text-blue-600 rounded-xl">
+                                    <Bot className="w-6 h-6" />
+                                </div>
+                                <h2 className="text-xl font-bold text-gray-900">AI Personality & Logic</h2>
                             </div>
-                            <h2 className="text-3xl font-bold mb-2">AI Voice Concierge</h2>
-                            <p className="text-gray-400 max-w-md">
-                                Handling inbound calls for booking, inquiries, and support using VoiceCake API.
-                            </p>
+                            <p className="text-gray-500 text-sm">Define how your AI represents your business.</p>
                         </div>
-                        <div className="hidden md:flex items-center justify-center w-16 h-16 bg-white/10 rounded-2xl backdrop-blur-sm">
-                            <Mic className="w-8 h-8 text-white" />
-                        </div>
-                    </div>
-                    <div className="mt-8 flex gap-4">
-                        <div className="bg-white/10 px-4 py-3 rounded-xl backdrop-blur-sm">
-                            <p className="text-xs text-gray-400 uppercase tracking-wider">Total Calls</p>
-                            <p className="text-2xl font-bold mt-1">{logs.length}</p>
-                        </div>
-                        <div className="bg-white/10 px-4 py-3 rounded-xl backdrop-blur-sm">
-                            <p className="text-xs text-gray-400 uppercase tracking-wider">Status</p>
-                            <p className="text-2xl font-bold mt-1">{agentConfigured ? 'Ready' : 'Setup'}</p>
+
+                        <div className="p-8 space-y-6">
+                            <div className="grid md:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-gray-700">Agent Name</label>
+                                    <Input
+                                        value={aiConfig.aiName}
+                                        onChange={(e) => setAiConfig({ ...aiConfig, aiName: e.target.value })}
+                                        placeholder="e.g. Sarah from Front Desk"
+                                        className="bg-gray-50 border-gray-200"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-gray-700">AI Model</label>
+                                    <select
+                                        value={aiConfig.model}
+                                        onChange={(e) => setAiConfig({ ...aiConfig, model: e.target.value })}
+                                        className="w-full h-10 px-3 rounded-md border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        <option value="gpt-4">GPT-4 (Recommended)</option>
+                                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo (Fastest)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-gray-700">Welcome Message</label>
+                                <Input
+                                    value={aiConfig.welcomeMessage}
+                                    onChange={(e) => setAiConfig({ ...aiConfig, welcomeMessage: e.target.value })}
+                                    placeholder="e.g. Thanks for calling Dr. Smith's office. How can I help?"
+                                    className="bg-gray-50 border-gray-200"
+                                />
+                                <p className="text-xs text-gray-400">The first thing the AI says when answering the phone.</p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-gray-700">System Instructions (Prompt)</label>
+                                <textarea
+                                    value={aiConfig.customSystemPrompt}
+                                    onChange={(e) => setAiConfig({ ...aiConfig, customSystemPrompt: e.target.value })}
+                                    placeholder="You are a helpful receptionist. Your goal is to schedule appointments..."
+                                    className="w-full min-h-[200px] p-4 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+                                />
+                                <p className="text-xs text-gray-400">
+                                    Be specific! Describe your business hours, services, tone of voice, and how to handle objections.
+                                </p>
+                            </div>
+
+                            <Button
+                                onClick={handleSaveConfig}
+                                disabled={isSaving}
+                                className="w-full h-12 bg-gray-900 hover:bg-gray-800 text-white rounded-xl font-medium shadow-lg shadow-gray-200 transition-all active:scale-95"
+                            >
+                                {isSaving ? 'Saving Changes...' : 'Save AI Configuration'}
+                            </Button>
                         </div>
                     </div>
                 </div>
 
-                {/* Test Call Card */}
-                <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-center">
-                    <div className="mb-4">
-                        <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 mb-3">
-                            <PhoneOutgoing className="w-6 h-6" />
-                        </div>
-                        <h3 className="font-bold text-gray-900 text-lg">Test Voice System</h3>
-                        <p className="text-sm text-gray-500">
-                            {isMockMode
-                                ? 'Simulate a test call (no auth required in mock mode)'
-                                : 'Initiate a test call to verify the agent'
-                            }
-                        </p>
-                    </div>
+                {/* Right Column: Testing & Status */}
+                <div className="lg:col-span-5 space-y-6">
 
-                    <form onSubmit={handleCall} className="space-y-4">
-                        <div>
+                    {/* Test Call Card */}
+                    <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-2 bg-green-100 text-green-600 rounded-xl">
+                                <PhoneOutgoing className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-gray-900">Test Your Agent</h3>
+                                <p className="text-sm text-gray-500">Call yourself to hear the changes.</p>
+                            </div>
+                        </div>
+
+                        <form onSubmit={handleCall} className="space-y-4">
                             <Input
                                 placeholder="+1 (555) 000-0000"
                                 value={phoneNumber}
                                 onChange={(e) => setPhoneNumber(e.target.value)}
-                                className="bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400 focus-visible:ring-blue-500"
+                                className="h-12 text-lg bg-gray-50 border-gray-200"
                             />
-                            <p className="text-xs text-gray-500 mt-1">Include country code (e.g., +1 for US)</p>
-                        </div>
-                        <Button
-                            type="submit"
-                            className="w-full"
-                            disabled={isCalling || !phoneNumber}
-                        >
-                            {isCalling ? 'Calling...' : 'Call Now'}
-                        </Button>
+                            <Button
+                                type="submit"
+                                className="w-full h-12 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold shadow-lg shadow-green-100"
+                                disabled={isCalling || !phoneNumber}
+                            >
+                                {isCalling ? 'Initiating Call...' : 'Call Me Now'}
+                            </Button>
 
-                        {callStatus === 'success' && (
-                            <p className="text-sm text-green-600 text-center bg-green-50 py-2 rounded-lg px-2">
-                                {feedbackMessage}
-                            </p>
-                        )}
-                        {callStatus === 'error' && (
-                            <div className="text-sm text-red-600 bg-red-50 py-3 px-3 rounded-lg">
-                                <p className="font-medium mb-1">Call Failed</p>
-                                <p className="text-xs">{feedbackMessage}</p>
-                            </div>
-                        )}
-                    </form>
-                </div>
-                {/* Inbound Configuration Card */}
-                <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col">
-                    <div className="mb-4">
-                        <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center text-green-600 mb-3">
-                            <Phone className="w-6 h-6" />
-                        </div>
-                        <h3 className="font-bold text-gray-900 text-lg">Inbound Configuration</h3>
-                        <p className="text-sm text-gray-500">
-                            Configure a number for your agent to answer incoming calls.
-                        </p>
+                            {callStatus === 'success' && (
+                                <p className="text-sm text-green-600 text-center bg-green-50 py-2 rounded-lg font-medium">
+                                    {feedbackMessage}
+                                </p>
+                            )}
+                            {callStatus === 'error' && (
+                                <p className="text-sm text-red-600 text-center bg-red-50 py-2 rounded-lg">
+                                    {feedbackMessage}
+                                </p>
+                            )}
+                        </form>
                     </div>
 
-                    <div className="space-y-4">
-                        <div>
-                            <Input
-                                placeholder="+1 (555) 000-0000"
-                                value={inboundPhone}
-                                onChange={(e) => setInboundPhone(e.target.value)}
-                                className="bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400 focus-visible:ring-green-500"
-                            />
-                            <p className="text-xs text-gray-500 mt-1">Number to assign to this agent</p>
+                    {/* Quick Stats */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center">
+                            <div className="text-3xl font-bold text-gray-900 mb-1">{logs.length}</div>
+                            <div className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Total Calls</div>
                         </div>
-                        <Button
-                            className="w-full bg-green-600 hover:bg-green-700"
-                            onClick={handleInboundConfig}
-                            disabled={inboundLoading || !inboundPhone}
-                        >
-                            {inboundLoading ? 'Saving...' : 'Save & Configure Inbound'}
-                        </Button>
-                        <p className="text-xs text-center text-gray-400">
-                            Webhook: {API_URL}/api/webhooks/voice
-                        </p>
+                        <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center">
+                            <div className="text-3xl font-bold text-green-600 mb-1">Active</div>
+                            <div className="text-xs text-gray-500 uppercase tracking-wider font-semibold">System Status</div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* Call Logs */}
-            <div className="bg-white rounded-3xl shadow-sm overflow-hidden border border-gray-100">
-                <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                    <h3 className="font-bold text-gray-900">Recent Calls</h3>
-                    <button
-                        onClick={async () => {
-                            setLoading(true);
-                            await fetchLogs();
-                        }}
-                        className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-                    >
-                        Refresh
-                    </button>
+            {/* Call Logs (Full Width) */}
+            <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
+                <div className="p-8 border-b border-gray-100 flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                        <Activity className="w-5 h-5 text-gray-400" />
+                        <h3 className="font-bold text-gray-900 text-lg">Call History</h3>
+                    </div>
+                    <Button variant="ghost" onClick={fetchLogs} className="text-blue-600 hover:text-blue-700">
+                        Refresh Logs
+                    </Button>
                 </div>
+
                 <div className="overflow-x-auto">
                     <table className="w-full">
-                        <thead className="bg-gray-50">
+                        <thead className="bg-slate-50/50">
                             <tr>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Caller</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Summary</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
-                                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Recording</th>
+                                <th className="px-8 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
+                                <th className="px-8 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Number</th>
+                                <th className="px-8 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Summary / Response</th>
+                                <th className="px-8 py-4 text-right text-xs font-bold text-gray-400 uppercase tracking-wider">Time</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {loading ? (
+                            {logs.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-8 text-center text-gray-500">Loading logs...</td>
-                                </tr>
-                            ) : logs.length === 0 ? (
-                                <tr>
-                                    <td colSpan={5} className="px-6 py-8 text-center">
-                                        <div className="flex flex-col items-center justify-center text-gray-500">
-                                            <Phone className="w-12 h-12 mb-3 text-gray-300" />
-                                            <p className="font-medium">No call logs yet</p>
-                                            <p className="text-sm mt-1">Test calls will appear here</p>
-                                        </div>
+                                    <td colSpan={4} className="px-8 py-12 text-center text-gray-500">
+                                        No calls recorded yet. Try the test dialer above!
                                     </td>
                                 </tr>
                             ) : (
-                                logs.map((log) => (
-                                    <tr key={log.id || log.callId} className="hover:bg-gray-50 transition-colors">
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center">
-                                                <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
-                                                    <Phone className="w-4 h-4" />
-                                                </div>
-                                                <div className="ml-3">
-                                                    <p className="text-sm font-medium text-gray-900">
-                                                        {log.lead?.name || log.name || 'Test Call'}
-                                                    </p>
-                                                    <p className="text-xs text-gray-500">
-                                                        {log.phoneNumber || log.lead?.phone || 'No Number'}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${log.status === 'completed' ? 'bg-green-50 text-green-700' :
-                                                log.status === 'initiated' ? 'bg-blue-50 text-blue-700' :
-                                                    log.status === 'failed' ? 'bg-red-50 text-red-700' :
-                                                        'bg-gray-50 text-gray-700'
+                                logs.map((log, i) => (
+                                    <tr key={i} className="hover:bg-slate-50/50 transition-colors">
+                                        <td className="px-8 py-4">
+                                            <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${log.status === 'completed' ? 'bg-green-100 text-green-700' :
+                                                    'bg-gray-100 text-gray-600'
                                                 }`}>
                                                 {log.status || 'Completed'}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4">
-                                            <p className="text-sm text-gray-600 max-w-xs truncate">
-                                                {log.summary || log.transcript ||
-                                                    (log.mockMode ? 'Mock call - simulated in development' : 'No summary available')}
-                                            </p>
+                                        <td className="px-8 py-4 font-medium text-gray-900">
+                                            {log.phoneNumber || log.to || 'Unknown'}
                                         </td>
-                                        <td className="px-6 py-4 text-sm text-gray-500">
-                                            {log.timestamp
-                                                ? new Date(log.timestamp).toLocaleString()
-                                                : log.createdAt
-                                                    ? new Date(log.createdAt).toLocaleString()
-                                                    : 'Just now'}
+                                        <td className="px-8 py-4 text-gray-600 max-w-md truncate">
+                                            {log.summary || 'Start of conversation...'}
                                         </td>
-                                        <td className="px-6 py-4 text-right">
-                                            {log.recordingUrl ? (
-                                                <a
-                                                    href={log.recordingUrl}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-900 inline-flex"
-                                                >
-                                                    <Play className="w-4 h-4" />
-                                                </a>
-                                            ) : (
-                                                <span className="text-xs text-gray-400">
-                                                    {log.mockMode ? 'Mock' : 'No recording'}
-                                                </span>
-                                            )}
+                                        <td className="px-8 py-4 text-right text-gray-500 text-sm">
+                                            {new Date(log.timestamp || log.createdAt).toLocaleString()}
                                         </td>
                                     </tr>
                                 ))
