@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import ChatInterface from '@/components/ChatInterface';
-import { Bot, Save, Sparkles, MessageSquare, Plus, Trash2, HelpCircle, Book } from 'lucide-react';
+import { Bot, Save, Sparkles, MessageSquare, Plus, Trash2, HelpCircle, Book, Settings, User } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
@@ -135,7 +135,7 @@ export default function ChatPage() {
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Chat Agent Studio</h1>
-                    <p className="text-gray-500 mt-2">Customize your AI chatbot's knowledge, personality, and behavior.</p>
+                    <p className="text-gray-500 mt-2">Design your AI chatbot's personality and knowledge base.</p>
                 </div>
             </div>
 
@@ -152,42 +152,72 @@ export default function ChatPage() {
                             </div>
                             <div>
                                 <h2 className="text-lg font-bold text-gray-900">Agent Persona</h2>
-                                <p className="text-gray-500 text-xs mt-0.5">Core personality and logic.</p>
+                                <p className="text-gray-500 text-xs mt-0.5">Customize the identity and brain of your bot.</p>
                             </div>
                         </div>
 
                         <div className="p-6 space-y-6">
                             <div className="grid md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-gray-800">Bot Name</label>
-                                    <Input
-                                        value={aiConfig.aiName}
-                                        onChange={(e) => setAiConfig({ ...aiConfig, aiName: e.target.value })}
-                                        className="bg-white border-gray-300"
-                                    />
+                                    <label className="text-sm font-semibold text-gray-800">Agent Name</label>
+                                    <div className="relative">
+                                        <Input
+                                            value={aiConfig.aiName}
+                                            onChange={(e) => setAiConfig({ ...aiConfig, aiName: e.target.value })}
+                                            placeholder="e.g. ScriptishRx Support"
+                                            className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-blue-500"
+                                        />
+                                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                    </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-gray-800">Model</label>
-                                    <select
-                                        value={aiConfig.model}
-                                        onChange={(e) => setAiConfig({ ...aiConfig, model: e.target.value })}
-                                        className="w-full h-10 px-3 rounded-md border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    >
-                                        <option value="gpt-4">GPT-4 (Smarter)</option>
-                                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo (Faster)</option>
-                                    </select>
+                                    <label className="text-sm font-semibold text-gray-800">AI Model</label>
+                                    <div className="relative">
+                                        <select
+                                            value={aiConfig.model}
+                                            onChange={(e) => setAiConfig({ ...aiConfig, model: e.target.value })}
+                                            className="w-full h-10 pl-3 pr-8 rounded-md border border-gray-300 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer"
+                                        >
+                                            <option value="gpt-4">GPT-4 (Recommended for accuracy)</option>
+                                            <option value="gpt-3.5-turbo">GPT-3.5 Turbo (Faster speed)</option>
+                                        </select>
+                                        <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-gray-500">
+                                            <Settings className="w-4 h-4" />
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-sm font-semibold text-gray-800">Before-Instruction Prompt</label>
-                                <textarea
-                                    value={aiConfig.customSystemPrompt}
-                                    onChange={(e) => setAiConfig({ ...aiConfig, customSystemPrompt: e.target.value })}
-                                    placeholder="You are a helpful assistant..."
-                                    className="w-full min-h-[150px] p-4 rounded-xl border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+                                <label className="text-sm font-semibold text-gray-800">Welcome Message</label>
+                                <Input
+                                    value={aiConfig.welcomeMessage}
+                                    onChange={(e) => setAiConfig({ ...aiConfig, welcomeMessage: e.target.value })}
+                                    placeholder="e.g. Hello! How can I assist you today?"
+                                    className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-blue-500"
                                 />
-                                <p className="text-xs text-gray-500">Define the bot's role, tone, and operational boundaries.</p>
+                                <p className="text-xs text-gray-500">The first message the user sees when opening the chat.</p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-gray-800">System Instructions (Prompt)</label>
+                                <div className="relative">
+                                    <textarea
+                                        value={aiConfig.customSystemPrompt}
+                                        onChange={(e) => setAiConfig({ ...aiConfig, customSystemPrompt: e.target.value })}
+                                        placeholder="You are a helpful customer support agent. Your goal is to answer questions about..."
+                                        className="w-full min-h-[180px] p-4 rounded-xl border border-gray-300 bg-white text-gray-900 placeholder:text-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y leading-relaxed shadow-sm"
+                                    />
+                                    <div className="absolute bottom-3 right-3 text-gray-300 pointer-events-none">
+                                        <Sparkles className="w-5 h-5" />
+                                    </div>
+                                </div>
+                                <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 flex items-start gap-2">
+                                    <HelpCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                                    <p className="text-xs text-blue-800 leading-relaxed">
+                                        <strong>Tip:</strong> Be specific about your business rules. For example: "Always be polite," "If asked about pricing, say it depends on the insurance," or "Our office hours are 9 AM to 5 PM."
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -201,40 +231,51 @@ export default function ChatPage() {
                                 </div>
                                 <div>
                                     <h2 className="text-lg font-bold text-gray-900">Knowledge Base</h2>
-                                    <p className="text-gray-500 text-xs mt-0.5">Teach the AI specific answers (Q&A).</p>
+                                    <p className="text-gray-500 text-xs mt-0.5">Train the AI with specific Question & Answer pairs.</p>
                                 </div>
                             </div>
-                            <Button size="sm" onClick={addFaq} variant="outline" className="text-purple-600 border-purple-200 hover:bg-purple-50">
+                            <Button size="sm" onClick={addFaq} variant="outline" className="text-purple-600 border-purple-200 hover:bg-purple-50 hover:border-purple-300 transition-colors">
                                 <Plus className="w-4 h-4 mr-1" /> Add Q&A
                             </Button>
                         </div>
 
                         <div className="p-6 space-y-4">
                             {!aiConfig.faqs || aiConfig.faqs.length === 0 ? (
-                                <div className="text-center py-8 text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                                    <HelpCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                                    <p>No FAQs added yet. Add questions to train your bot.</p>
+                                <div className="flex flex-col items-center justify-center py-10 text-gray-400 bg-gray-50/50 rounded-xl border-2 border-dashed border-gray-200">
+                                    <Book className="w-10 h-10 mb-3 opacity-20" />
+                                    <p className="font-medium text-gray-500">No FAQs added yet</p>
+                                    <p className="text-sm mt-1">Add questions to help your bot answer accurately.</p>
+                                    <Button variant="ghost" onClick={addFaq} className="mt-4 text-purple-600 hover:bg-purple-50">
+                                        Add your first Q&A
+                                    </Button>
                                 </div>
                             ) : (
                                 aiConfig.faqs.map((faq, index) => (
-                                    <div key={index} className="bg-slate-50 p-4 rounded-xl border border-gray-200 relative group transition-all hover:border-purple-200 hover:shadow-sm">
-                                        <div className="space-y-3">
-                                            <Input
-                                                placeholder="Question (e.g. What are your hours?)"
-                                                value={faq.question}
-                                                onChange={(e) => updateFaq(index, 'question', e.target.value)}
-                                                className="bg-white border-gray-200 font-medium"
-                                            />
-                                            <textarea
-                                                placeholder="Answer (e.g. We are open 9am-5pm Mon-Fri)"
-                                                value={faq.answer}
-                                                onChange={(e) => updateFaq(index, 'answer', e.target.value)}
-                                                className="w-full p-3 rounded-lg border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 min-h-[80px]"
-                                            />
+                                    <div key={index} className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm relative group transition-all hover:border-purple-300 hover:shadow-md">
+                                        <div className="space-y-4">
+                                            <div className="space-y-1.5">
+                                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Question</label>
+                                                <Input
+                                                    placeholder="e.g. What is your cancellation policy?"
+                                                    value={faq.question}
+                                                    onChange={(e) => updateFaq(index, 'question', e.target.value)}
+                                                    className="bg-gray-50 border-gray-200 font-medium text-gray-900 placeholder:text-gray-400 focus:bg-white transition-colors"
+                                                />
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">AI Answer</label>
+                                                <textarea
+                                                    placeholder="e.g. You can cancel up to 24 hours in advance for a full refund."
+                                                    value={faq.answer}
+                                                    onChange={(e) => updateFaq(index, 'answer', e.target.value)}
+                                                    className="w-full p-3 rounded-lg border border-gray-200 bg-gray-50 text-gray-900 placeholder:text-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white min-h-[80px] transition-colors"
+                                                />
+                                            </div>
                                         </div>
                                         <button
                                             onClick={() => removeFaq(index)}
-                                            className="absolute top-4 right-4 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            className="absolute top-4 right-4 p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                                            title="Remove Q&A"
                                         >
                                             <Trash2 className="w-4 h-4" />
                                         </button>
@@ -247,30 +288,34 @@ export default function ChatPage() {
                     <Button
                         onClick={handleSaveConfig}
                         disabled={isSaving}
-                        className="w-full h-12 bg-gray-900 hover:bg-black text-white rounded-xl font-semibold shadow-lg shadow-gray-200 transition-all hover:-translate-y-0.5"
+                        className="w-full h-12 bg-gray-900 hover:bg-black text-white rounded-xl font-bold shadow-lg shadow-gray-200 transition-all hover:-translate-y-0.5 active:scale-95"
                     >
                         {isSaving ? <Loader /> : <Save className="w-5 h-5 mr-2" />}
-                        {isSaving ? 'Saving Changes...' : 'Save Configuration'}
+                        {isSaving ? 'Saving Configuration...' : 'Save All Changes'}
                     </Button>
                 </div>
 
                 {/* Right Column: Live Preview */}
                 <div className="lg:col-span-5 space-y-6">
                     <div className="bg-white rounded-[1.5rem] shadow-sm border border-gray-200 overflow-hidden h-[calc(100vh-12rem)] sticky top-6 flex flex-col">
-                        <div className="p-4 border-b border-gray-100 bg-gray-50/50 flex items-center gap-3">
-                            <div className="p-2 bg-green-600 text-white rounded-lg shadow-sm">
-                                <MessageSquare className="w-5 h-5" />
+                        <div className="p-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-green-600 text-white rounded-lg shadow-sm">
+                                    <MessageSquare className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-bold text-gray-900">Live Preview</h2>
+                                    <p className="text-gray-500 text-xs mt-0.5">interact with your bot.</p>
+                                </div>
                             </div>
-                            <div>
-                                <h2 className="text-lg font-bold text-gray-900">Live Preview</h2>
-                                <p className="text-gray-500 text-xs mt-0.5">Test your changes instantly.</p>
+                            <div className="flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-700 rounded-full text-xs font-medium border border-green-100">
+                                <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                                Online
                             </div>
                         </div>
-                        <div className="flex-1 overflow-hidden bg-gray-50 p-4">
-                            {/* We pass a key to force re-render if needed, but ChatInterface fetches history on mount. 
-                                Actually, we might want to clear history when config changes to test fresh.
-                            */}
-                            <div className="h-full rounded-2xl overflow-hidden shadow-sm border border-gray-200 bg-white">
+                        <div className="flex-1 overflow-hidden bg-gray-50 p-4 relative">
+                            <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5 pointer-events-none" />
+                            <div className="h-full rounded-2xl overflow-hidden shadow-lg border border-gray-200 bg-white relative z-10">
                                 <ChatInterface isDashboard={true} />
                             </div>
                         </div>
