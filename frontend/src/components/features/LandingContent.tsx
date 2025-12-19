@@ -618,7 +618,7 @@ export const Footer = () => {
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12 mb-12 md:mb-16">
                     <div className="col-span-2 lg:col-span-1 space-y-6">
                         <div className="flex items-center gap-2 mb-4">
-                            <img src="/logo.jpg" alt="ScriptishRx Logo" className="h-16 w-auto object-contain brightness-0 invert" />
+                            <img src="/logo.jpg" alt="ScriptishRx Logo" className="h-16 w-auto object-contain rounded-lg" />
                         </div>
                         <p className="text-slate-400 leading-relaxed max-w-sm">
                             The #1 AI-powered business concierge platform for modern enterprises.
@@ -671,16 +671,7 @@ export const Footer = () => {
                     </div>
                 </div>
                 <div className="pt-8 border-t border-slate-800 text-center text-slate-500 text-sm flex flex-col md:flex-row justify-between items-center gap-4">
-                    <span>© {new Date().getFullYear()} ScriptishRx LLC. All rights reserved. | Developed by{' '}
-                        <a
-                            className="text-decoration-none fw-semibold text-white"
-                            href="https://vincentagber.vercel.app/"
-                            target="_blank"
-                            rel="noopener"
-                        >
-                            Vincent Agber
-                        </a>
-                    </span>
+                    <span>© {new Date().getFullYear()} ScriptishRx LLC. All rights reserved.</span>
                     <div className="flex gap-6">
                         <button onClick={() => setActiveModal('privacy')} className="hover:text-white transition-colors">Privacy & Terms</button>
                         <button onClick={() => setActiveModal('sitemap')} className="hover:text-white transition-colors">Sitemap</button>
