@@ -8,7 +8,13 @@ class NotificationService {
             sgMail.setApiKey(process.env.SENDGRID_API_KEY);
             this.emailProvider = sgMail;
         } else {
-            console.warn('⚠️ NotificationService: SENDGRID_API_KEY missing. Email will be logged to console.');
+            const msg = 'SENDGRID_API_KEY is not configured.';
+            if (process.env.NODE_ENV === 'production') {
+                console.error('🔴 FATAL: NotificationService - ' + msg + ' Email features will not work in production.');
+                throw new Error(msg);
+            } else {
+                console.warn('⚠️ NotificationService:', msg, 'Emails will be logged to console in development.');
+            }
         }
 
         // SMS Setup
@@ -39,6 +45,7 @@ class NotificationService {
                 }
             }
         } else {
+            // In production we should never hit this branch due to constructor check.
             console.log(`[MOCK EMAIL] To: ${to} | Subject: ${subject} | Body: ${html.substring(0, 50)}...`);
         }
     }
@@ -60,10 +67,16 @@ class NotificationService {
                 });
                 console.log(`📱 SMS sent to ${to} (Global Provider)`);
             } else {
+                const msg = 'Twilio credentials not configured for global SMS sending.';
+                if (process.env.NODE_ENV === 'production') {
+                    console.error('🔴 FATAL: NotificationService -', msg);
+                    throw new Error(msg);
+                }
                 console.log(`[MOCK SMS] To: ${to} | Body: ${body}`);
             }
         } catch (error) {
             console.error(`❌ SMS Failed (${to}):`, error.message);
+            throw error;
         }
     }
 }

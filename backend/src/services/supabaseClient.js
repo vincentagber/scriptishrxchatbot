@@ -7,9 +7,19 @@ const supabaseUrl = process.env.SUPABASE_URL || process.env.PUBLIC_SUPABASE_URL 
 const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.PUBLIC_SUPABASE_ANON_KEY || process.env.PUBLIC_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
-    console.error('❗ SUPABASE_URL or SUPABASE_ANON_KEY not set in environment');
+    const msg = 'SUPABASE_URL and SUPABASE_ANON_KEY must be set to use Supabase features.';
+    console.error('❗ ' + msg);
+    if (process.env.NODE_ENV === 'production') {
+        throw new Error(msg);
+    }
+    // In development, export a thin stub that throws on use to fail fast where called
+    const supabaseStub = new Proxy({}, {
+        get() {
+            return () => { throw new Error('Supabase client not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY.'); };
+        }
+    });
+    module.exports = supabaseStub;
+} else {
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    module.exports = supabase;
 }
-
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-module.exports = supabase;

@@ -3,13 +3,21 @@ const axios = require('axios');
 
 const VOICECAKE_API_URL = (process.env.VOICECAKE_API_URL || 'https://api.voicecake.io').replace(/\/$/, '');
 const VOICECAKE_API_KEY = process.env.VOICECAKE_API_KEY;
-const isMockMode = process.env.MOCK_EXTERNAL_SERVICES === 'true' || !VOICECAKE_API_KEY;
+const MOCK_MODE = process.env.MOCK_EXTERNAL_SERVICES === 'true';
+const hasVoiceCakeKey = !!VOICECAKE_API_KEY;
+const isMockMode = MOCK_MODE || !hasVoiceCakeKey;
 
 // In-memory storage for mock mode
 const mockAgentLinks = new Map();
 const mockCalls = new Map();
 
-// Initialize default agent in mock mode
+// Fail fast in production if key is missing and mock mode not explicitly enabled
+if (process.env.NODE_ENV === 'production' && !MOCK_MODE && !hasVoiceCakeKey) {
+    console.error('🔴 FATAL: VOICECAKE_API_KEY is not set and MOCK_EXTERNAL_SERVICES is not enabled.');
+    throw new Error('VOICECAKE_API_KEY missing in production');
+}
+
+// Initialize default agent in mock mode (only when mock explicitly enabled or in dev without key)
 if (isMockMode) {
     mockAgentLinks.set('default_tenant', {
         agentId: 'agent_001',
