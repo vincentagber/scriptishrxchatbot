@@ -54,174 +54,49 @@ const webhooksRouter = require('./routes/webhooks');
 const marketingRouter = require('./routes/marketing');
 const organizationRouter = require('./routes/organization');
 
-// Load AI Chat routes
-let chatAIRouter;
+// Load AI Chat routes (production: must exist)
+let chatAIRouter = null;
 try {
     chatAIRouter = require('./routes/chat.routes');
     console.log('✓ AI Chat routes loaded (chat.routes.js)');
 } catch (error) {
-    console.warn('⚠ AI Chat routes not found - creating fallback');
-    chatAIRouter = createFallbackChatRouter();
+    console.error('ERROR: AI Chat routes (./routes/chat.routes) not found or failed to load. NOT registering /api/chat.');
+    console.error(error && error.message ? error.message : error);
+    chatAIRouter = null;
 }
 
-// Load Legacy Chat routes (if exists)
-let legacyChatRouter;
+// Load Legacy Chat routes (optional)
+let legacyChatRouter = null;
 try {
     legacyChatRouter = require('./routes/chat');
     console.log('✓ Legacy chat routes loaded');
 } catch (error) {
-    console.warn('⚠ Legacy chat routes not found');
+    console.warn('INFO: Legacy chat routes (./routes/chat) not found');
+    legacyChatRouter = null;
 }
 
 // LOAD VOICECAKE ROUTES
-let voiceCakeRouter;
+let voiceCakeRouter = null;
 const voiceCakeFilePath = path.join(__dirname, 'routes', 'voicecake.js');
-
 if (fs.existsSync(voiceCakeFilePath)) {
     try {
         voiceCakeRouter = require('./routes/voicecake');
         console.log('✓ VoiceCake routes loaded');
     } catch (err) {
-        console.error('ERROR: VoiceCake file exists but failed to load:', err.message);
-        console.warn('Falling back to MOCK routes');
-        voiceCakeRouter = createMockVoiceCakeRouter();
+        console.error('ERROR: VoiceCake routes failed to load:', err.message);
+        voiceCakeRouter = null;
     }
 } else {
-    console.warn('WARNING: routes/voicecake.js NOT FOUND → Using mock routes');
-    voiceCakeRouter = createMockVoiceCakeRouter();
+    console.warn('INFO: routes/voicecake.js not found (voicecake integration not enabled)');
+    voiceCakeRouter = null;
 }
 
 // ==================== HELPER FUNCTIONS ====================
 
-// Fallback AI chat router if chat.routes.js doesn't exist
-function createFallbackChatRouter() {
-    const router = express.Router();
-
-    // In-memory message storage
-    const messages = [];
-
-    router.get('/status', (req, res) => {
-        res.json({
-            success: true,
-            status: 'online',
-            mockMode: true,
-            provider: 'fallback',
-            timestamp: new Date().toISOString()
-        });
-    });
-
-    router.get('/history', (req, res) => {
-        res.json({
-            success: true,
-            messages: messages,
-            total: messages.length
-        });
-    });
-
-    router.post('/message', (req, res) => {
-        const { message } = req.body;
-
-        if (!message) {
-            return res.status(400).json({
-                success: false,
-                error: 'Message is required'
-            });
-        }
-
-        // Add user message
-        messages.push({
-            id: `msg_${Date.now()}`,
-            role: 'user',
-            content: message,
-            timestamp: new Date().toISOString()
-        });
-
-        // Generate mock response
-        const responses = [
-            "I understand your question. This is a fallback AI response.",
-            "That's interesting! Let me help you with that. (Fallback mode)",
-            "I can assist you with that. This is a simulated response.",
-            "Great question! Here's what I think... (Mock AI)",
-            "I'd be happy to help! (Test response in fallback mode)",
-            "Let me process that for you. (Simulated AI assistant)",
-            "Excellent! I'm here to assist. (Fallback chat mode)",
-            "I hear you! Let me think about that... (Mock response)"
-        ];
-
-        const response = responses[Math.floor(Math.random() * responses.length)];
-
-        // Add assistant message
-        messages.push({
-            id: `msg_${Date.now() + 1}`,
-            role: 'assistant',
-            content: response,
-            timestamp: new Date().toISOString(),
-            mockMode: true
-        });
-
-        res.json({
-            success: true,
-            response: response,
-            metadata: {
-                mockMode: true,
-                fallback: true,
-                processingTime: 800
-            },
-            mockMode: true
-        });
-    });
-
-    router.delete('/history', (req, res) => {
-        messages.length = 0;
-        res.json({
-            success: true,
-            message: 'Chat history cleared (fallback mode)'
-        });
-    });
-
-    console.log('✓ Fallback chat routes created');
-    return router;
-}
-
-// Mock VoiceCake router
-function createMockVoiceCakeRouter() {
-    const router = express.Router();
-
-    router.get('/agents', (req, res) => {
-        res.json({
-            success: true,
-            agents: [
-                { id: 'agent_001', name: 'Sales Agent', phone_number: '+15551234567', status: 'active' },
-                { id: 'agent_002', name: 'Support Agent', phone_number: '+15559876543', status: 'active' }
-            ],
-            mockMode: true
-        });
-    });
-
-    router.get('/tenant/agent', (req, res) => {
-        res.json({
-            success: true,
-            configured: true,
-            agent: { id: 'agent_001', name: 'Sales Agent', phone_number: '+15551234567', status: 'active' },
-            mockMode: true
-        });
-    });
-
-    router.post('/calls/outbound', (req, res) => {
-        const { phoneNumber } = req.body;
-        res.json({
-            success: true,
-            callId: `mock_${Date.now()}`,
-            status: 'initiated',
-            message: 'Mock call placed!',
-            phoneNumber,
-            mockMode: true
-        });
-    });
-
-    console.log('✓ Mock VoiceCake routes created');
-    return router;
-}
+// NOTE: Demo/fallback/mock routers removed for production readiness.
+// If a route module is missing, the server will not register a mock replacement.
+// This ensures missing integrations fail loudly during deployment rather than silently
+// serving demo data to end users.
 
 // ==================== REGISTER ALL ROUTES ====================
 
