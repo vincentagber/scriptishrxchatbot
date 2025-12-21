@@ -118,16 +118,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         if (!token) return;
 
         // 1. Fetch initial count
-        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/notifications`, {
-            headers: { Authorization: `Bearer ${token}` }
-        })
-            .then(res => res.json())
-            .then(data => {
-                if (Array.isArray(data)) {
-                    setUnreadCount(data.filter((n: any) => !n.isRead).length);
-                }
-            })
-            .catch(console.error);
+        if (token) {
+            import('@/lib/api').then(m => {
+                m.default.get('/notifications')
+                    .then(({ data }) => {
+                        if (Array.isArray(data)) {
+                            setUnreadCount(data.filter((n: any) => !n.isRead).length);
+                        }
+                    })
+                    .catch(console.error);
+            });
+        }
 
         // 2. Connect Socket
         // Dynamic import to avoid SSR issues if any, though 'use client' handles it usually
