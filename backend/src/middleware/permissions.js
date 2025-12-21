@@ -12,70 +12,7 @@
 
 const prisma = require('../lib/prisma');
 
-// ========== PERMISSION MATRIX ==========
-const PERMISSIONS = {
-    // Super Admin - Platform Management
-    'SUPER_ADMIN': {
-        'platform': ['*'], // All actions
-        'organizations': ['create', 'read', 'update', 'delete', 'suspend'],
-        'users': ['create', 'read', 'update', 'delete'],
-        'subscriptions': ['create', 'read', 'update', 'delete', 'override'],
-        'analytics': ['platform_wide'],
-        'settings': ['system']
-    },
-
-    // Owner - Full Organization Access
-    'OWNER': {
-        'organization': ['read', 'update', 'delete'],
-        'users': ['create', 'read', 'update', 'delete', 'invite'],
-        'clients': ['create', 'read', 'update', 'delete'],
-        'bookings': ['create', 'read', 'update', 'delete'],
-        'minutes': ['create', 'read', 'update', 'delete'],
-        'voice_agents': ['create', 'read', 'update', 'delete', 'configure'],
-        'chatbots': ['create', 'read', 'update', 'delete', 'train'],
-        'workflows': ['create', 'read', 'update', 'delete'],
-        'campaigns': ['create', 'read', 'update', 'delete'],
-        'analytics': ['read'],
-        'subscriptions': ['read', 'update'],
-        'settings': ['read', 'update'],
-        'integrations': ['create', 'read', 'update', 'delete']
-    },
-
-    // Admin - Organization Management (no billing)
-    'ADMIN': {
-        'organization': ['read', 'update'],
-        'users': ['create', 'read', 'update', 'invite'],
-        'clients': ['create', 'read', 'update', 'delete'],
-        'bookings': ['create', 'read', 'update', 'delete'],
-        'minutes': ['create', 'read', 'update', 'delete'],
-        'voice_agents': ['read', 'update', 'configure'],
-        'chatbots': ['read', 'update', 'train'],
-        'workflows': ['create', 'read', 'update'],
-        'campaigns': ['create', 'read', 'update'],
-        'analytics': ['read'],
-        'settings': ['read'],
-        'integrations': ['read', 'update']
-    },
-
-    // Manager - CRM + Analytics + Voice
-    'MANAGER': {
-        'clients': ['create', 'read', 'update'],
-        'bookings': ['create', 'read', 'update'],
-        'minutes': ['create', 'read', 'update'],
-        'voice_agents': ['read', 'configure'],
-        'chatbots': ['read'],
-        'analytics': ['read'],
-        'campaigns': ['read']
-    },
-
-    // Member - Basic CRM Access
-    'MEMBER': {
-        'clients': ['read', 'update'],
-        'bookings': ['read', 'update'],
-        'minutes': ['read'],
-        'chatbots': ['read']
-    }
-};
+const prisma = require('../lib/prisma');
 
 /**
  * Check if user has permission for action on resource
@@ -83,59 +20,87 @@ const PERMISSIONS = {
 function checkPermission(resource, action) {
     return async (req, res, next) => {
         try {
-            const userRole = req.user?.role;
+            // Prefer DB-defined roleId, fallback to legacy string role
             const userId = req.user?.userId || req.user?.id;
+            const userStringRole = req.user?.role;
             const tenantId = req.user?.tenantId;
 
-            if (!userRole) {
+            if (!userId) {
                 return res.status(401).json({
                     success: false,
                     error: 'Authentication required',
+                    code: 'NO_USER'
+                });
+            }
+
+            // Fetch User with Role and Permissions
+            // We use findUnique on userId, getting definedRole and its permissions
+            const user = await prisma.user.findUnique({
+                where: { id: userId },
+                include: {
+                    definedRole: {
+                        include: {
+                            permissions: true
+                        }
+                    }
+                }
+            });
+
+            // 1. Resolve Permissions
+            let assignedPermissions = [];
+            let effectiveRoleName = userStringRole;
+
+            if (user?.definedRole) {
+                effectiveRoleName = user.definedRole.name;
+                assignedPermissions = user.definedRole.permissions;
+            } else if (userStringRole) {
+                // FALLBACK: If user has a string role but no DB relation yet,
+                // try to fetch the Role from DB by name to get permissions
+                // This supports users who haven't been migrated to roleId yet
+                const roleConfig = await prisma.role.findUnique({
+                    where: { name: userStringRole },
+                    include: { permissions: true }
+                });
+                if (roleConfig) {
+                    assignedPermissions = roleConfig.permissions;
+                }
+            }
+
+            if (!effectiveRoleName) {
+                return res.status(403).json({
+                    success: false,
+                    error: 'No role assigned',
                     code: 'NO_ROLE'
                 });
             }
 
-            // Get user permissions for their role
-            const rolePermissions = PERMISSIONS[userRole];
+            // 2. Check Permission Matches
+            // Permission is granted if:
+            // - The user has a permission for the resource with matching action
+            // - OR the user has a permission for the resource with action '*'
+            // - OR the user is SUPER_ADMIN (implicit override)
 
-            if (!rolePermissions) {
-                return res.status(403).json({
-                    success: false,
-                    error: 'Invalid role',
-                    code: 'INVALID_ROLE'
-                });
+            if (effectiveRoleName === 'SUPER_ADMIN') {
+                return next(); // Super Admin bypass
             }
 
-            // Check if role has access to resource
-            const resourcePermissions = rolePermissions[resource];
-
-            if (!resourcePermissions) {
-                return res.status(403).json({
-                    success: false,
-                    error: `Access denied to ${resource}`,
-                    code: 'NO_RESOURCE_ACCESS',
-                    resource,
-                    role: userRole
-                });
-            }
-
-            // Check if action is allowed
-            const hasPermission = resourcePermissions.includes('*') || resourcePermissions.includes(action);
+            const hasPermission = assignedPermissions.some(perm =>
+                perm.resource === resource && (perm.action === '*' || perm.action === action)
+            );
 
             if (!hasPermission) {
                 return res.status(403).json({
                     success: false,
-                    error: `Cannot ${action} ${resource}`,
-                    code: 'NO_ACTION_PERMISSION',
+                    error: `Access denied to ${resource}`,
+                    code: 'ACCESS_DENIED',
                     resource,
                     action,
-                    role: userRole,
-                    message: `Your role (${userRole}) does not have permission to ${action} ${resource}`
+                    role: effectiveRoleName
                 });
             }
 
             // For non-super-admins, verify tenant isolation
-            if (userRole !== 'SUPER_ADMIN' && tenantId) {
+            if (tenantId) {
                 req.scopedTenantId = tenantId; // Enforce tenant scoping
             }
 

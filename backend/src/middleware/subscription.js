@@ -44,6 +44,23 @@ async function checkSubscriptionAccess(req, res, next) {
 
         // Check if subscription exists
         if (!user.subscription) {
+            // FALBACK: 14-Day Free Access for New Users (No Subscription Record Needed)
+            const accountAgeMs = new Date() - new Date(user.createdAt);
+            const accountAgeDays = accountAgeMs / (1000 * 60 * 60 * 24);
+
+            if (accountAgeDays <= 14) {
+                req.subscription = {
+                    plan: 'Trial',
+                    status: 'Active',
+                    isTrialActive: true,
+                    daysRemaining: Math.ceil(14 - accountAgeDays),
+                    hasFullAccess: true,
+                    startDate: user.createdAt,
+                    endDate: new Date(new Date(user.createdAt).getTime() + 14 * 24 * 60 * 60 * 1000)
+                };
+                return next();
+            }
+
             return res.status(403).json({
                 success: false,
                 error: 'No active subscription',
@@ -201,7 +218,32 @@ async function getSubscriptionStatus(req, res) {
             include: { subscription: true }
         });
 
-        if (!user || !user.subscription) {
+        if (!user) {
+            return res.json({ success: false, hasSubscription: false });
+        }
+
+        // Check for Implicit 14-Day Trial if no subscription exists
+        if (!user.subscription) {
+            const accountAgeMs = new Date() - new Date(user.createdAt);
+            const accountAgeDays = accountAgeMs / (1000 * 60 * 60 * 24);
+
+            if (accountAgeDays <= 14) {
+                const endDate = new Date(new Date(user.createdAt).getTime() + 14 * 24 * 60 * 60 * 1000);
+                return res.json({
+                    success: true,
+                    hasSubscription: true,
+                    subscription: {
+                        plan: 'Trial',
+                        status: 'Active',
+                        startDate: user.createdAt,
+                        endDate: endDate,
+                        isTrialActive: true,
+                        daysRemaining: Math.ceil(14 - accountAgeDays),
+                        features: getFeaturesForPlan('Trial', true)
+                    }
+                });
+            }
+
             return res.json({
                 success: false,
                 hasSubscription: false

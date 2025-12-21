@@ -1,87 +1,120 @@
-const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 const { PrismaClient } = require('@prisma/client');
-const bcrypt = require('bcryptjs');
-
 const prisma = new PrismaClient();
 
+const PERMISSIONS = {
+    'SUPER_ADMIN': {
+        'platform': ['*'],
+        'organizations': ['create', 'read', 'update', 'delete', 'suspend'],
+        'users': ['create', 'read', 'update', 'delete'],
+        'subscriptions': ['create', 'read', 'update', 'delete', 'override'],
+        'analytics': ['platform_wide'],
+        'settings': ['system']
+    },
+    'OWNER': {
+        'organization': ['read', 'update', 'delete'],
+        'users': ['create', 'read', 'update', 'delete', 'invite'],
+        'clients': ['create', 'read', 'update', 'delete'],
+        'bookings': ['create', 'read', 'update', 'delete'],
+        'minutes': ['create', 'read', 'update', 'delete'],
+        'voice_agents': ['create', 'read', 'update', 'delete', 'configure'],
+        'chatbots': ['create', 'read', 'update', 'delete', 'train'],
+        'workflows': ['create', 'read', 'update', 'delete'],
+        'campaigns': ['create', 'read', 'update', 'delete'],
+        'analytics': ['read'],
+        'subscriptions': ['read', 'update'],
+        'settings': ['read', 'update'],
+        'integrations': ['create', 'read', 'update', 'delete']
+    },
+    'SUBSCRIBER': {
+        'organization': ['read', 'update'],
+        'clients': ['create', 'read', 'update', 'delete'],
+        'bookings': ['create', 'read', 'update', 'delete'],
+        'minutes': ['create', 'read', 'update', 'delete'],
+        'voice_agents': ['create', 'read', 'update', 'delete', 'configure'],
+        'chatbots': ['create', 'read', 'update', 'delete', 'train'],
+        'workflows': ['create', 'read', 'update', 'delete'],
+        'campaigns': ['create', 'read', 'update', 'delete'],
+        'analytics': ['read'],
+        'subscriptions': ['read', 'update'],
+        'settings': ['read', 'update'],
+        'integrations': ['read', 'update']
+    },
+    'ADMIN': {
+        'organization': ['read', 'update'],
+        'users': ['create', 'read', 'update', 'invite'],
+        'clients': ['create', 'read', 'update', 'delete'],
+        'bookings': ['create', 'read', 'update', 'delete'],
+        'minutes': ['create', 'read', 'update', 'delete'],
+        'voice_agents': ['read', 'update', 'configure'],
+        'chatbots': ['read', 'update', 'train'],
+        'workflows': ['create', 'read', 'update'],
+        'campaigns': ['create', 'read', 'update'],
+        'analytics': ['read'],
+        'settings': ['read'],
+        'integrations': ['read', 'update']
+    },
+    'MANAGER': {
+        'clients': ['create', 'read', 'update'],
+        'bookings': ['create', 'read', 'update'],
+        'minutes': ['create', 'read', 'update'],
+        'voice_agents': ['read', 'configure'],
+        'chatbots': ['read'],
+        'analytics': ['read'],
+        'campaigns': ['read']
+    },
+    'MEMBER': {
+        'clients': ['read', 'update'],
+        'bookings': ['read', 'update'],
+        'minutes': ['read'],
+        'chatbots': ['read']
+    }
+};
+
 async function main() {
-    console.log('Start seeding ...');
+    console.log('🌱 Seeding RBAC Roles and Permissions...');
 
-    // 1. Create a default Tenant
-    // 1. Create a default Tenant
-    const tenant = await prisma.tenant.upsert({
-        where: { id: '11111111-1111-1111-1111-111111111111' },
-        update: {},
-        create: {
-            id: '11111111-1111-1111-1111-111111111111',
-            name: 'Demo Clinic',
-            location: 'New York, NY',
-            timezone: 'America/New_York',
-        },
-    });
+    for (const [roleName, resources] of Object.entries(PERMISSIONS)) {
+        console.log(`Processing Role: ${roleName}`);
 
-    console.log(`Created tenant: ${tenant.name} (${tenant.id})`);
-
-    // 2. Create a Test User linked to the Tenant
-    const hashedPassword = await bcrypt.hash('password123', 10);
-
-    const user = await prisma.user.upsert({
-        where: { email: 'test@scriptishrx.com' },
-        update: {},
-        create: {
-            email: 'test@scriptishrx.com',
-            name: 'Test User',
-            password: hashedPassword,
-            role: 'ADMIN',
-            tenantId: tenant.id,
-        },
-    });
-
-    console.log(`Created user: ${user.email} (${user.id})`);
-
-    // 3. Create Demo Clients
-    const clients = [];
-    for (let i = 0; i < 5; i++) {
-        clients.push(await prisma.client.create({
-            data: {
-                tenantId: tenant.id,
-                name: [`Alice Smith`, `Bob Jones`, `Charlie Brown`, `Diana Prince`, `Evan Wright`][i],
-                email: `client${i}@example.com`,
-                phone: `+1555000000${i}`,
-                source: i % 2 === 0 ? 'Voice Agent' : 'Chatbot',
-            }
-        }));
-    }
-    console.log(`Created ${clients.length} clients.`);
-
-    // 4. Create Demo Bookings
-    const today = new Date();
-    for (const client of clients) {
-        // Past Booking
-        await prisma.booking.create({
-            data: {
-                clientId: client.id,
-                tenantId: tenant.id,
-                date: new Date(today.getTime() - 86400000 * Math.random() * 10), // Past 10 days
-                status: 'Completed',
-                purpose: 'General Wellness',
+        // 1. Create or Update Role
+        const role = await prisma.role.upsert({
+            where: { name: roleName },
+            update: {},
+            create: {
+                name: roleName,
+                description: `System role for ${roleName}`,
+                isSystem: true
             }
         });
-        // Future Booking
-        await prisma.booking.create({
-            data: {
-                clientId: client.id,
-                tenantId: tenant.id,
-                date: new Date(today.getTime() + 86400000 * Math.random() * 10), // Next 10 days
-                status: 'Scheduled',
-                purpose: 'Follow-up',
-            }
-        });
-    }
-    console.log('Created demo bookings.');
 
-    console.log('Seeding finished.');
+        // 2. Create Permissions and Assign to Role
+        for (const [resource, actions] of Object.entries(resources)) {
+            for (const action of actions) {
+                // Find or Create Permission
+                const permission = await prisma.permission.upsert({
+                    where: {
+                        resource_action: { resource, action }
+                    },
+                    update: {},
+                    create: { resource, action }
+                });
+
+                // Link Permission to Role (if not already linked)
+                // Note: Prisma many-to-many connect is idempotent-ish inside update/create but here we separate
+                // To be safe, we explicitly connect
+                await prisma.role.update({
+                    where: { id: role.id },
+                    data: {
+                        permissions: {
+                            connect: { id: permission.id }
+                        }
+                    }
+                });
+            }
+        }
+    }
+
+    console.log('✅ RBAC Seeding Completed!');
 }
 
 main()

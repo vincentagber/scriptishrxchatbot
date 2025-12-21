@@ -11,9 +11,19 @@ const registerSchema = z.object({
     email: z.string().email(),
     password: z.string().min(8, 'Password must be at least 8 characters'),
     name: z.string().min(2),
-    companyName: z.string().min(2),
+    companyName: z.string().optional(),
+    accountType: z.enum(['INDIVIDUAL', 'ORGANIZATION']).optional().default('ORGANIZATION'),
     location: z.string().optional(),
     timezone: z.string().optional(),
+    inviteToken: z.string().optional()
+}).refine(data => {
+    if (data.accountType === 'ORGANIZATION' && !data.companyName) {
+        return false;
+    }
+    return true;
+}, {
+    message: "Company name is required for Organization accounts",
+    path: ["companyName"]
 });
 
 const loginSchema = z.object({

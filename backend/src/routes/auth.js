@@ -120,17 +120,34 @@ router.post('/register', registerLimiter, async (req, res) => {
             });
         }
 
-        // STANDARD REGISTRATION (New organization)
+        // STANDARD REGISTRATION (New organization/workspace)
+        const accountType = validated.accountType || 'ORGANIZATION';
+        const role = accountType === 'INDIVIDUAL' ? 'SUBSCRIBER' : 'OWNER';
+
+        // For individuals, companyName is optional - use fallback
+        const tenantName = validated.companyName || `${name}'s Workspace`;
+
+        // Fetch DB Role
+        const dbRole = await prisma.role.findUnique({ where: { name: role } });
+        if (!dbRole) {
+            throw new Error(`System role '${role}' not found. Please contact support or run seed.`);
+        }
+
         const result = await prisma.$transaction(async (prisma) => {
             const tenant = await prisma.tenant.create({
-                data: { name: companyName || name + "'s Organization", location, timezone },
+                data: {
+                    name: tenantName,
+                    location,
+                    timezone
+                },
             });
             const user = await prisma.user.create({
                 data: {
                     email,
                     password: hashedPassword,
                     name,
-                    role: 'OWNER',
+                    role: role, // Keep string for legacy/logging
+                    roleId: dbRole.id, // Relation
                     tenantId: tenant.id,
                 },
             });

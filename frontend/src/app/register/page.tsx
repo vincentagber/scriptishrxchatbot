@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function RegisterPage() {
+    const [accountType, setAccountType] = useState<'ORGANIZATION' | 'INDIVIDUAL'>('ORGANIZATION');
     const [name, setName] = useState('');
     const [companyName, setCompanyName] = useState('');
     const [companyLocation, setCompanyLocation] = useState('');
@@ -25,10 +26,21 @@ export default function RegisterPage() {
             const apiUrl = process.env.NODE_ENV === 'development'
                 ? 'http://localhost:5000'
                 : (typeof window !== 'undefined' ? '' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'));
+
+            const payload = {
+                name,
+                email,
+                password,
+                accountType,
+                companyName: accountType === 'ORGANIZATION' ? companyName : undefined,
+                location: companyLocation,
+                timezone
+            };
+
             const res = await fetch(`${apiUrl}/api/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, email, password, companyName, location: companyLocation, timezone }),
+                body: JSON.stringify(payload),
             });
 
             const data = await res.json();
@@ -51,7 +63,7 @@ export default function RegisterPage() {
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
             <div className="bg-white/80 backdrop-blur-xl p-8 rounded-2xl shadow-2xl w-full max-w-md border border-white/50">
-                <div className="text-center mb-8">
+                <div className="text-center mb-6">
                     <div className="flex justify-center mb-4">
                         <img src="/logo.jpg" alt="ScriptishRx" className="h-20 w-auto" />
                     </div>
@@ -66,6 +78,24 @@ export default function RegisterPage() {
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-6">
+                    {/* Account Type Selector */}
+                    <div className="flex p-1 bg-gray-100 rounded-lg">
+                        <button
+                            type="button"
+                            onClick={() => setAccountType('ORGANIZATION')}
+                            className={`flex-1 text-sm font-medium py-2 rounded-md transition-all ${accountType === 'ORGANIZATION' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                            Organization
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setAccountType('INDIVIDUAL')}
+                            className={`flex-1 text-sm font-medium py-2 rounded-md transition-all ${accountType === 'INDIVIDUAL' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                            Individual
+                        </button>
+                    </div>
+
                     <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">Full Name</label>
                         <input
@@ -88,17 +118,20 @@ export default function RegisterPage() {
                             required
                         />
                     </div>
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">Company Name</label>
-                        <input
-                            type="text"
-                            value={companyName}
-                            onChange={(e) => setCompanyName(e.target.value)}
-                            className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-all duration-200 text-gray-800 placeholder-gray-400"
-                            placeholder="My Business"
-                            required
-                        />
-                    </div>
+
+                    {accountType === 'ORGANIZATION' && (
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">Company Name</label>
+                            <input
+                                type="text"
+                                value={companyName}
+                                onChange={(e) => setCompanyName(e.target.value)}
+                                className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-all duration-200 text-gray-800 placeholder-gray-400"
+                                placeholder="My Business"
+                                required
+                            />
+                        </div>
+                    )}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">Location</label>
