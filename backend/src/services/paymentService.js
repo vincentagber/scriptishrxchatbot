@@ -4,7 +4,7 @@ const stripe = process.env.STRIPE_SECRET_KEY ? require('stripe')(process.env.STR
 class PaymentService {
     constructor() {
         if (!stripe) {
-            console.warn('⚠️ PaymentService: STRIPE_SECRET_KEY missing. Payments will be mocked.');
+            console.warn('⚠️ PaymentService: STRIPE_SECRET_KEY missing. Payments unavailable.');
         }
     }
 

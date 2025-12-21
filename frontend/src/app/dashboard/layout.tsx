@@ -42,10 +42,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                 // Use configured API client
                 const { data } = await import('@/lib/api').then(m => m.default.get('/settings'));
-                setUser(data);
 
-                // Cache it for next time
-                if (data.name) localStorage.setItem('userName', data.name);
+                if (data.success && data.user) {
+                    setUser(data.user);
+                    // Cache it for next time
+                    if (data.user.name) localStorage.setItem('userName', data.user.name);
+                }
             } catch (err) {
                 console.error('User fetch failed:', err);
                 setUser(prev => prev || { name: 'Admin', email: 'admin@scriptishrx.com', avatarUrl: '' });

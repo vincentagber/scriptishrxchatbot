@@ -372,7 +372,7 @@ function VoiceAgentSettings({ showToast }: { showToast: (msg: string, type: 'suc
             {/* Test Call */}
             {currentAgent && (
                 <div className="pt-6 border-t border-gray-100">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 block">Test Your Assistant</label>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 block">Voice Line Verification</label>
                     <div className="flex gap-3">
                         <input
                             type="tel"
@@ -387,10 +387,10 @@ function VoiceAgentSettings({ showToast }: { showToast: (msg: string, type: 'suc
                             className="px-5 py-2 bg-black text-white font-bold text-sm rounded-xl hover:bg-gray-800 disabled:opacity-50 transition-all flex items-center gap-2"
                         >
                             {calling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Phone className="w-4 h-4" />}
-                            Call Me
+                            Initiate Call
                         </button>
                     </div>
-                    <p className="text-xs text-gray-400 mt-2">Enter your phone number to receive a test call from {currentAgent.name}.</p>
+                    <p className="text-xs text-gray-400 mt-2">Enter a phone number to verify outbound connectivity from {currentAgent.name}.</p>
                 </div>
             )}
         </div>

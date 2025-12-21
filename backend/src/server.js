@@ -37,69 +37,14 @@ if (!process.env.OPENAI_API_KEY) {
     }
 }
 
-// Validate MOCK_EXTERNAL_SERVICES is disabled for production
-if (process.env.NODE_ENV === 'production' && process.env.MOCK_EXTERNAL_SERVICES === 'true') {
-    console.error('🔴 FATAL: MOCK_EXTERNAL_SERVICES must be false in production!');
-    process.exit(1);
-}
+console.log(`   OpenAI API:      ${process.env.OPENAI_API_KEY ? '✓ Set' : '⚠ Not set'}`);
+console.log('='.repeat(60) + '\n');
 
-// VoiceCake check removed
-
-
-const server = http.createServer(app);
-
-// Initialize Socket.IO
-const socketService = require('./services/socketService');
-const io = socketService.init(server);
-console.log('socket.io initialized');
-
-// WebSocket handling (Native WS for Twilio Media Streams)
-const WebSocket = require('ws');
-const wss = new WebSocket.Server({
-    server,
-    path: '/media-stream'
-});
-
-// Import Voice Service
-const voiceService = require('./services/voiceService');
-
-wss.on('connection', (ws, req) => {
-    const clientIp = req.socket.remoteAddress;
-    console.log(`New WebSocket connection from ${clientIp}`);
-
-    try {
-        voiceService.handleConnection(ws, req);
-    } catch (error) {
-        console.error('Error handling WebSocket connection:', error);
-        ws.close();
-    }
-});
-
-wss.on('error', (error) => {
-    console.error('WebSocket server error:', error);
-});
-
-// Listen on PORT (can be a number or a named pipe string)
-// Do NOT specify '0.0.0.0' or 'localhost' as it breaks named pipe support
-server.listen(PORT, () => {
-    console.log('\n' + '='.repeat(60));
-    console.log('ScriptishRx API Server Started Successfully');
-    console.log('='.repeat(60));
-    console.log(`Listening on:    ${typeof PORT === 'string' ? 'Named Pipe/Socket' : 'Port ' + PORT}`);
-    console.log(`WebSocket:       ws://localhost:${PORT}/media-stream`);
-    console.log(`Environment:     ${process.env.NODE_ENV || 'development'}`);
-    console.log(`Root Directory:  ${path.resolve(__dirname, '../..')}`);
-    console.log('\nConfiguration Status:');
-    console.log(`   JWT Secret:      ${process.env.JWT_SECRET ? '✓ Set' : '✗ Missing'}`);
-    console.log(`   OpenAI API:      ${process.env.OPENAI_API_KEY ? '✓ Set' : '⚠ Not set'}`);
-    console.log(`   Mock Mode:       ${process.env.MOCK_EXTERNAL_SERVICES === 'true' ? 'Enabled' : 'Disabled'}`);
-    console.log('='.repeat(60) + '\n');
-
-    // Log available routes
-    console.log('Testing routes:');
-    console.log(`   curl http://localhost:${PORT}/`);
-    console.log(`   curl http://localhost:${PORT}/api/chat/status`);
-    console.log('');
+// Log available routes
+console.log('Testing routes:');
+console.log(`   curl http://localhost:${PORT}/`);
+console.log(`   curl http://localhost:${PORT}/api/chat/status`);
+console.log('');
 });
 
 // Graceful shutdown

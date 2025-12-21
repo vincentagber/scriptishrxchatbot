@@ -353,8 +353,8 @@ export default function VoicePage() {
                                 <PhoneOutgoing className="w-5 h-5" />
                             </div>
                             <div>
-                                <h2 className="text-lg font-bold text-gray-900">Test Your Agent</h2>
-                                <p className="text-gray-500 text-xs mt-0.5">Simulate a customer call instantly.</p>
+                                <h2 className="text-lg font-bold text-gray-900">Outbound Call Console</h2>
+                                <p className="text-gray-500 text-xs mt-0.5">Reach clients directly through your AI Agent.</p>
                             </div>
                         </div>
 
@@ -376,9 +376,9 @@ export default function VoicePage() {
                                 >
                                     {isCalling ? (
                                         <span className="flex items-center gap-2">
-                                            <Activity className="w-4 h-4 animate-spin" /> Calling...
+                                            <Activity className="w-4 h-4 animate-spin" /> Dialing...
                                         </span>
-                                    ) : 'Initiate Test Call'}
+                                    ) : 'Dial Number'}
                                 </Button>
 
                                 {callStatus === 'success' && (
@@ -439,8 +439,8 @@ export default function VoicePage() {
                                             <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
                                                 <Phone className="w-6 h-6 text-gray-400" />
                                             </div>
-                                            <p className="font-medium">No calls recorded yet.</p>
-                                            <p className="text-sm text-gray-400">Try testing the agent or make an inbound call.</p>
+                                            <p className="font-medium">No call activity recorded yet.</p>
+                                            <p className="text-sm text-gray-400">Initiate a verification call to activate the log history.</p>
                                         </div>
                                     </td>
                                 </tr>
@@ -449,7 +449,7 @@ export default function VoicePage() {
                                     <tr key={i} className="hover:bg-blue-50/30 transition-colors group">
                                         <td className="px-6 py-4">
                                             <span className={`inline-flex px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider border ${log.status === 'completed' ? 'bg-green-50 text-green-700 border-green-100' :
-                                                    'bg-gray-50 text-gray-600 border-gray-100'
+                                                'bg-gray-50 text-gray-600 border-gray-100'
                                                 }`}>
                                                 {log.status || 'Completed'}
                                             </span>
