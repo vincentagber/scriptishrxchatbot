@@ -562,14 +562,22 @@ router.patch('/info',
                 const existingConfig = (currentTenant && currentTenant.twilioConfig) ? currentTenant.twilioConfig : {};
 
                 if (twilioConfig.phoneNumber) {
-                    if (!twilioConfig.phoneNumber.trim()) {
+                    // Sanitize input: Allow users to paste formats like "+1 866-724-3198"
+                    // We strip everything except '+' and digits.
+                    const cleanedPhone = twilioConfig.phoneNumber.replace(/[^\d+]/g, '');
+
+                    if (!cleanedPhone.trim()) {
                         return res.status(400).json({ success: false, error: 'Twilio Phone Number cannot be empty' });
                     }
-                    // Basic E.164 validation
+
+                    // Basic E.164 validation on CLEANED number
                     const phoneRegex = /^\+?[1-9]\d{1,14}$/;
-                    if (!phoneRegex.test(twilioConfig.phoneNumber.trim())) {
-                        return res.status(400).json({ success: false, error: 'Invalid Phone Number format. Use E.164 (e.g. +15551234567)' });
+                    if (!phoneRegex.test(cleanedPhone)) {
+                        return res.status(400).json({ success: false, error: `Invalid Phone Number format. Got: '${cleanedPhone}'. Expected E.164 (e.g. +18667243198)` });
                     }
+
+                    // Use the sanitized number for saving
+                    twilioConfig.phoneNumber = cleanedPhone;
                 }
 
                 // Merge new config into existing
