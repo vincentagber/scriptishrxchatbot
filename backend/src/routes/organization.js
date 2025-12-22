@@ -517,17 +517,40 @@ router.patch('/info',
 
             // New JSON Configs
             if (aiConfig !== undefined) {
+                // Fetch current config to merge (Read-Modify-Write) prevents overwriting FAQs when saving Voice settings
+                const currentTenantAI = await prisma.tenant.findUnique({
+                    where: { id: tenantId },
+                    select: { aiConfig: true }
+                });
+                const existingAiConfig = (currentTenantAI && currentTenantAI.aiConfig) ? currentTenantAI.aiConfig : {};
+
+                // Merge: New values override old, but missing keys (like faqs from Voice page) are preserved
+                const mergedAiConfig = {
+                    ...existingAiConfig,
+                    ...aiConfig
+                };
+
                 // VALIDATION: Prevent empty saves
-                if (!aiConfig.aiName || !aiConfig.aiName.trim()) {
+                if (!mergedAiConfig.aiName || !mergedAiConfig.aiName.trim()) {
                     return res.status(400).json({ success: false, error: 'AI Name is required' });
                 }
-                if (!aiConfig.welcomeMessage || !aiConfig.welcomeMessage.trim()) {
+                if (!mergedAiConfig.welcomeMessage || !mergedAiConfig.welcomeMessage.trim()) {
                     return res.status(400).json({ success: false, error: 'Welcome Message is required' });
                 }
-                if (!aiConfig.systemPrompt || !aiConfig.systemPrompt.trim()) {
+                if (!mergedAiConfig.systemPrompt || !mergedAiConfig.systemPrompt.trim()) {
                     return res.status(400).json({ success: false, error: 'System Instructions are required' });
                 }
-                updateData.aiConfig = aiConfig;
+
+                // FAQ Validation
+                if (mergedAiConfig.faqs && Array.isArray(mergedAiConfig.faqs)) {
+                    for (const faq of mergedAiConfig.faqs) {
+                        if (!faq.question || !faq.question.trim() || !faq.answer || !faq.answer.trim()) {
+                            return res.status(400).json({ success: false, error: 'All Q&A pairs must have both a question and an answer.' });
+                        }
+                    }
+                }
+
+                updateData.aiConfig = mergedAiConfig;
             }
 
             if (twilioConfig !== undefined) {
