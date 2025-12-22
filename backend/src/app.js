@@ -13,7 +13,10 @@ const app = express();
 app.set('trust proxy', 1);
 
 // Security & Middleware
-app.use(helmet()); // Secure HTTP headers
+app.use(helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false
+})); // Secure HTTP headers (Relaxed for API)
 app.use(hpp());    // Prevent HTTP Parameter Pollution
 
 app.use(cors({

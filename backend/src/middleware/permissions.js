@@ -247,7 +247,18 @@ async function getUserPermissions(req, res) {
         }
 
         let assignedPermissions = {};
-        const permissionsList = user.definedRole?.permissions || [];
+        let permissionsList = user.definedRole?.permissions || [];
+
+        // Fallback for legacy users with string role but no DB relation
+        if (permissionsList.length === 0 && userStringRole) {
+            const roleConfig = await prisma.role.findUnique({
+                where: { name: userStringRole },
+                include: { permissions: true }
+            });
+            if (roleConfig) {
+                permissionsList = roleConfig.permissions;
+            }
+        }
 
         // Convert DB permissions list to the expected format { resource: [actions] }
         permissionsList.forEach(p => {
