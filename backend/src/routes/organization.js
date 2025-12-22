@@ -531,13 +531,29 @@ router.patch('/info',
             }
 
             if (twilioConfig !== undefined) {
-                if (twilioConfig.phoneNumber && !twilioConfig.phoneNumber.trim()) {
-                    return res.status(400).json({ success: false, error: 'Twilio Phone Number cannot be empty' });
+                // Fetch current config to merge (Read-Modify-Write for JSON)
+                const currentTenant = await prisma.tenant.findUnique({
+                    where: { id: tenantId },
+                    select: { twilioConfig: true }
+                });
+                const existingConfig = (currentTenant && currentTenant.twilioConfig) ? currentTenant.twilioConfig : {};
+
+                if (twilioConfig.phoneNumber) {
+                    if (!twilioConfig.phoneNumber.trim()) {
+                        return res.status(400).json({ success: false, error: 'Twilio Phone Number cannot be empty' });
+                    }
+                    // Basic E.164 validation
+                    const phoneRegex = /^\+?[1-9]\d{1,14}$/;
+                    if (!phoneRegex.test(twilioConfig.phoneNumber.trim())) {
+                        return res.status(400).json({ success: false, error: 'Invalid Phone Number format. Use E.164 (e.g. +15551234567)' });
+                    }
                 }
-                // Merge with existing config if needed, but for now we replace or update
-                // Prisma JSON updates can be partial depending on DB adapter, but typically it overrides the field.
-                // It is safer to fetch first and merge, but simple replacement is expected here for settings forms.
-                updateData.twilioConfig = twilioConfig;
+
+                // Merge new config into existing
+                updateData.twilioConfig = {
+                    ...existingConfig,
+                    ...twilioConfig
+                };
             }
 
             const tenant = await prisma.tenant.update({
