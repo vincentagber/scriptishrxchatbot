@@ -239,68 +239,71 @@ function SubscriptionSettings({ plan, showToast }: any) {
     )
 }
 
-// --- Voice Agent Settings ---
+// --- Voice Agent Settings (Custom Twilio/OpenAI) ---
 function VoiceAgentSettings({ showToast }: { showToast: (msg: string, type: 'success' | 'error') => void }) {
-    const [agents, setAgents] = useState<any[]>([]);
-    const [currentAgent, setCurrentAgent] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    const [linking, setLinking] = useState(false);
+    const [inboundPhone, setInboundPhone] = useState('');
+    const [webhookUrl, setWebhookUrl] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
     const [testPhone, setTestPhone] = useState('');
     const [calling, setCalling] = useState(false);
 
     useEffect(() => {
-        fetchAgentData();
+        fetchData();
+        // Set webhook URL based on current environment
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+        setWebhookUrl(`${baseUrl}/api/twilio/webhook/voice`);
     }, []);
 
-    const fetchAgentData = async () => {
+    const fetchData = async () => {
         setLoading(true);
         const token = localStorage.getItem('token');
-        try {
-            // 1. Get List of All Available Agents
-            const agentsRes = await fetch('http://localhost:5000/api/voicecake/agents', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (agentsRes.ok) {
-                const data = await agentsRes.json();
-                setAgents(data.agents || []);
-            }
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
-            // 2. Get Currently Linked Agent
-            const currentRes = await fetch('http://localhost:5000/api/voicecake/tenant/agent', {
+        try {
+            const res = await fetch(`${API_URL}/api/organization/info`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-            if (currentRes.ok) {
-                const data = await currentRes.json();
-                setCurrentAgent(data.agent);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.organization?.twilioConfig?.phoneNumber) {
+                    setInboundPhone(data.organization.twilioConfig.phoneNumber);
+                }
             }
         } catch (error) {
             console.error('Failed to fetch voice data:', error);
-            showToast('Failed to load voice agent data.', 'error');
+            showToast('Failed to load voice configuration.', 'error');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleLinkAgent = async (agentId: string) => {
-        setLinking(true);
+    const handleSaveInbound = async () => {
+        if (!inboundPhone) return showToast('Please enter a phone number.', 'error');
+        setIsSaving(true);
         const token = localStorage.getItem('token');
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
         try {
-            const res = await fetch('http://localhost:5000/api/voicecake/tenant/link-agent', {
-                method: 'POST',
+            const res = await fetch(`${API_URL}/api/organization/info`, {
+                method: 'PATCH',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ agentId })
+                body: JSON.stringify({
+                    twilioConfig: {
+                        phoneNumber: inboundPhone
+                    }
+                })
             });
 
             if (res.ok) {
-                showToast('Agent linked successfully!', 'success');
-                fetchAgentData(); // Refresh state
+                showToast('Inbound number saved successfully!', 'success');
             } else {
-                showToast('Failed to link agent.', 'error');
+                showToast('Failed to save configuration.', 'error');
             }
         } catch (error) {
-            showToast('Network error while linking agent.', 'error');
+            showToast('Network error while saving.', 'error');
         } finally {
-            setLinking(false);
+            setIsSaving(false);
         }
     };
 
@@ -308,8 +311,10 @@ function VoiceAgentSettings({ showToast }: { showToast: (msg: string, type: 'suc
         if (!testPhone) return showToast('Please enter a phone number.', 'error');
         setCalling(true);
         const token = localStorage.getItem('token');
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
         try {
-            const res = await fetch('http://localhost:5000/api/voicecake/calls/outbound', {
+            const res = await fetch(`${API_URL}/api/voice/outbound`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ phoneNumber: testPhone })
@@ -328,71 +333,97 @@ function VoiceAgentSettings({ showToast }: { showToast: (msg: string, type: 'suc
         }
     };
 
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text);
+        showToast('Copied to clipboard!', 'success');
+    };
+
     if (loading) return <div className="flex items-center justify-center p-8"><Loader2 className="animate-spin text-gray-400" /></div>;
 
     return (
-        <div className="space-y-6">
-            {/* Current Status */}
-            <div className={`p-4 rounded-xl border ${currentAgent ? 'bg-green-50 border-green-100' : 'bg-gray-50 border-gray-200'} transition-all`}>
+        <div className="space-y-8">
+            {/* Status Card */}
+            <div className={`p-4 rounded-xl border ${inboundPhone ? 'bg-green-50 border-green-100' : 'bg-gray-50 border-gray-200'} transition-all`}>
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-lg ${currentAgent ? 'bg-green-100 text-green-600' : 'bg-gray-200 text-gray-500'}`}>
-                            {currentAgent ? <Phone className="w-5 h-5" /> : <Shield className="w-5 h-5" />}
+                        <div className={`p-2 rounded-lg ${inboundPhone ? 'bg-green-100 text-green-600' : 'bg-gray-200 text-gray-500'}`}>
+                            <Phone className="w-5 h-5" />
                         </div>
                         <div>
-                            <h3 className="text-sm font-bold text-gray-900">{currentAgent ? 'Active Voice Agent' : 'No Agent Configured'}</h3>
-                            <p className="text-xs text-gray-500">{currentAgent ? `Connected to ${currentAgent.name}` : 'Select an agent below to enable voice features.'}</p>
+                            <h3 className="text-sm font-bold text-gray-900">{inboundPhone ? 'Voice System Active' : 'Setup Required'}</h3>
+                            <p className="text-xs text-gray-500">{inboundPhone ? `Calls authorized for: ${inboundPhone}` : 'Connect a Twilio number to start.'}</p>
                         </div>
                     </div>
-                    {currentAgent && <span className="text-xs font-bold text-green-600 bg-green-100 px-3 py-1 rounded-full uppercase tracking-wider">Online</span>}
+                    {inboundPhone && <span className="text-xs font-bold text-green-600 bg-green-100 px-3 py-1 rounded-full uppercase tracking-wider">Online</span>}
                 </div>
             </div>
 
-            {/* Agent Selection */}
-            <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 block">Select Available Agent</label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {agents.map(agent => (
-                        <div
-                            key={agent.id}
-                            onClick={() => handleLinkAgent(agent.id)}
-                            className={`cursor-pointer p-4 rounded-xl border transition-all hover:shadow-md ${currentAgent?.id === agent.id ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' : 'border-gray-200 bg-white hover:border-blue-300'}`}
+            {/* Inbound Configuration */}
+            <div className="space-y-4">
+                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Inbound Configuration</h3>
+
+                <div className="space-y-2">
+                    <label className="text-xs font-bold text-gray-500">Your Twilio Phone Number</label>
+                    <div className="flex gap-2">
+                        <input
+                            type="text"
+                            value={inboundPhone}
+                            onChange={(e) => setInboundPhone(e.target.value)}
+                            placeholder="+1 (555) 123-4567"
+                            className="flex-1 px-4 py-3 bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 font-medium"
+                        />
+                        <button
+                            onClick={handleSaveInbound}
+                            disabled={isSaving}
+                            className="px-6 py-2 bg-black text-white font-bold text-sm rounded-xl hover:bg-gray-800 disabled:opacity-50 transition-all"
                         >
-                            <div className="flex justify-between items-center mb-2">
-                                <span className="font-bold text-gray-900">{agent.name}</span>
-                                {currentAgent?.id === agent.id && <Check className="w-4 h-4 text-blue-600" />}
-                            </div>
-                            <p className="text-xs text-gray-500 truncate">{agent.id}</p>
-                        </div>
-                    ))}
-                    {agents.length === 0 && <p className="text-sm text-gray-400 col-span-2">No agents found in your VoiceCake account.</p>}
+                            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save'}
+                        </button>
+                    </div>
+                    <p className="text-xs text-gray-400">Enter the number you purchased in Twilio.</p>
+                </div>
+
+                <div className="space-y-2">
+                    <label className="text-xs font-bold text-gray-500">Twilio Webhook URL</label>
+                    <div className="flex gap-2">
+                        <input
+                            readOnly
+                            value={webhookUrl}
+                            className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-500 font-mono text-xs"
+                        />
+                        <button
+                            onClick={() => copyToClipboard(webhookUrl)}
+                            className="px-4 py-2 bg-gray-100 text-gray-600 font-bold text-sm rounded-xl hover:bg-gray-200 transition-all border border-gray-200"
+                        >
+                            <ExternalLink className="w-4 h-4" />
+                        </button>
+                    </div>
+                    <p className="text-xs text-gray-400">Paste this URL into the "Voice & Fax" Webhook field in your Twilio Console.</p>
                 </div>
             </div>
 
             {/* Test Call */}
-            {currentAgent && (
-                <div className="pt-6 border-t border-gray-100">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 block">Voice Line Verification</label>
-                    <div className="flex gap-3">
-                        <input
-                            type="tel"
-                            placeholder="+1 (555) 000-0000"
-                            value={testPhone}
-                            onChange={(e) => setTestPhone(e.target.value)}
-                            className="flex-1 px-4 py-2 bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 text-sm font-medium"
-                        />
-                        <button
-                            onClick={handleTestCall}
-                            disabled={calling || !testPhone}
-                            className="px-5 py-2 bg-black text-white font-bold text-sm rounded-xl hover:bg-gray-800 disabled:opacity-50 transition-all flex items-center gap-2"
-                        >
-                            {calling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Phone className="w-4 h-4" />}
-                            Initiate Call
-                        </button>
-                    </div>
-                    <p className="text-xs text-gray-400 mt-2">Enter a phone number to verify outbound connectivity from {currentAgent.name}.</p>
+            <div className="pt-6 border-t border-gray-100">
+                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">Connection Verification</h3>
+                <div className="flex gap-3">
+                    <input
+                        type="tel"
+                        placeholder="Enter your cell phone number..."
+                        value={testPhone}
+                        onChange={(e) => setTestPhone(e.target.value)}
+                        className="flex-1 px-4 py-2 bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 text-sm font-medium"
+                    />
+                    <button
+                        onClick={handleTestCall}
+                        disabled={calling || !testPhone}
+                        className="px-5 py-2 bg-green-600 text-white font-bold text-sm rounded-xl hover:bg-green-700 disabled:opacity-50 transition-all flex items-center gap-2 shadow-sm shadow-green-100"
+                    >
+                        {calling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Phone className="w-4 h-4" />}
+                        Call Me
+                    </button>
                 </div>
-            )}
+                <p className="text-xs text-gray-400 mt-2">We will call this number to verify your AI agent is active.</p>
+            </div>
         </div>
     );
 }
