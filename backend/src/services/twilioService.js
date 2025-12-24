@@ -123,9 +123,10 @@ class TwilioService {
 
     /**
      * Handle Inbound SMS Webhook
+     * Saves messages to unified history and processes with AI
      */
     async handleInboundSms(params) {
-        const { To, From, Body } = params;
+        const { To, From, Body, MessageSid } = params;
         console.log(`[Twilio] Inbound SMS from ${From} to ${To}: ${Body}`);
 
         const tenant = await prisma.tenant.findFirst({
@@ -137,13 +138,66 @@ class TwilioService {
             return null;
         }
 
-        // Process with ChatService
+        // Create session ID based on phone number for threading
+        const sessionId = `sms_${From.replace(/\D/g, '')}`;
+
+        // Save incoming message to database with SMS source
+        try {
+            await prisma.message.create({
+                data: {
+                    tenantId: tenant.id,
+                    sessionId,
+                    role: 'user',
+                    content: Body,
+                    source: 'sms'
+                }
+            });
+        } catch (e) {
+            console.error('[Twilio] Error saving inbound SMS:', e);
+        }
+
+        // Process with ChatService (includes source in options)
         const response = await chatService.processMessage(Body, tenant.id);
 
         if (response.success && response.response) {
+            // Save AI response to database
+            try {
+                await prisma.message.create({
+                    data: {
+                        tenantId: tenant.id,
+                        sessionId,
+                        role: 'assistant',
+                        content: response.response,
+                        source: 'sms'
+                    }
+                });
+            } catch (e) {
+                console.error('[Twilio] Error saving outbound SMS:', e);
+            }
+
             // Reply via SMS
             await this.sendSms(tenant.id, From, response.response);
         }
+
+        return { success: true, sessionId };
+    }
+
+    /**
+     * Get SMS conversation history for a phone number
+     */
+    async getSmsConversation(tenantId, phoneNumber) {
+        const sessionId = `sms_${phoneNumber.replace(/\D/g, '')}`;
+
+        const messages = await prisma.message.findMany({
+            where: {
+                tenantId,
+                sessionId,
+                source: 'sms'
+            },
+            orderBy: { createdAt: 'asc' }
+        });
+
+        return messages;
     }
 }
 

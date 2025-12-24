@@ -193,4 +193,211 @@ router.get('/phone-numbers',
     }
 );
 
+/**
+ * GET /api/voice/calls - Get call sessions for tenant
+ */
+router.get('/calls',
+    authenticateToken,
+    verifyTenantAccess,
+    checkPermission('voice_agents', 'read'),
+    async (req, res) => {
+        try {
+            const tenantId = req.scopedTenantId;
+            const { limit = 50, includeTranscript = false } = req.query;
+
+            const sessions = await voiceService.getCallSessions(tenantId, {
+                limit: parseInt(limit),
+                includeTranscript: includeTranscript === 'true'
+            });
+
+            res.json({
+                success: true,
+                calls: sessions,
+                total: sessions.length
+            });
+        } catch (error) {
+            console.error('Error fetching call sessions:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to fetch call sessions'
+            });
+        }
+    }
+);
+
+/**
+ * GET /api/voice/calls/:id - Get single call session with full details
+ */
+router.get('/calls/:id',
+    authenticateToken,
+    verifyTenantAccess,
+    checkPermission('voice_agents', 'read'),
+    async (req, res) => {
+        try {
+            const tenantId = req.scopedTenantId;
+            const { id } = req.params;
+
+            const session = await voiceService.getCallSession(id, tenantId);
+
+            if (!session) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Call session not found'
+                });
+            }
+
+            res.json({
+                success: true,
+                call: session
+            });
+        } catch (error) {
+            console.error('Error fetching call session:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to fetch call session'
+            });
+        }
+    }
+);
+
+/**
+ * GET /api/voice/calls/:id/summary - Get AI-generated summary for a call
+ */
+router.get('/calls/:id/summary',
+    authenticateToken,
+    verifyTenantAccess,
+    checkPermission('voice_agents', 'read'),
+    async (req, res) => {
+        try {
+            const tenantId = req.scopedTenantId;
+            const { id } = req.params;
+
+            const session = await prisma.callSession.findFirst({
+                where: { id, tenantId },
+                select: {
+                    id: true,
+                    summary: true,
+                    actionItems: true,
+                    transcript: true,
+                    duration: true,
+                    startedAt: true,
+                    client: { select: { name: true } }
+                }
+            });
+
+            if (!session) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Call session not found'
+                });
+            }
+
+            res.json({
+                success: true,
+                callId: session.id,
+                summary: session.summary,
+                actionItems: session.actionItems,
+                hasTranscript: !!session.transcript,
+                duration: session.duration,
+                date: session.startedAt,
+                client: session.client?.name
+            });
+        } catch (error) {
+            console.error('Error fetching call summary:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to fetch call summary'
+            });
+        }
+    }
+);
+
+/**
+ * POST /api/voice/calls/:id/summarize - Regenerate summary for a call
+ */
+router.post('/calls/:id/summarize',
+    authenticateToken,
+    verifyTenantAccess,
+    checkSubscriptionAccess,
+    checkPermission('voice_agents', 'configure'),
+    async (req, res) => {
+        try {
+            const tenantId = req.scopedTenantId;
+            const { id } = req.params;
+
+            const result = await voiceService.regenerateSummary(id, tenantId);
+
+            res.json({
+                success: true,
+                message: 'Summary regenerated successfully',
+                summary: result.summary
+            });
+        } catch (error) {
+            console.error('Error regenerating summary:', error);
+            res.status(500).json({
+                success: false,
+                error: error.message || 'Failed to regenerate summary'
+            });
+        }
+    }
+);
+
+/**
+ * POST /api/voice/calls/:id/meeting-minute - Create meeting minute from call
+ */
+router.post('/calls/:id/meeting-minute',
+    authenticateToken,
+    verifyTenantAccess,
+    checkSubscriptionAccess,
+    checkPermission('meeting_minutes', 'create'),
+    async (req, res) => {
+        try {
+            const tenantId = req.scopedTenantId;
+            const { id } = req.params;
+
+            // Verify call belongs to tenant
+            const session = await prisma.callSession.findFirst({
+                where: { id, tenantId },
+                include: { client: true }
+            });
+
+            if (!session) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Call session not found'
+                });
+            }
+
+            if (!session.clientId) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Call has no associated client. Please link a client first.'
+                });
+            }
+
+            // Generate and save meeting minute
+            const summarizeService = require('../services/summarizeService');
+            const minuteData = await summarizeService.processCompletedCall(id, {
+                createMeetingMinute: true
+            });
+
+            res.status(201).json({
+                success: true,
+                message: 'Meeting minute created from call',
+                minute: {
+                    content: minuteData.content,
+                    clientId: session.clientId,
+                    callId: id
+                }
+            });
+        } catch (error) {
+            console.error('Error creating meeting minute from call:', error);
+            res.status(500).json({
+                success: false,
+                error: error.message || 'Failed to create meeting minute'
+            });
+        }
+    }
+);
+
 module.exports = router;

@@ -18,14 +18,33 @@ const hasOpenAI = !!process.env.OPENAI_API_KEY;
 console.log(`[Chat Service] AI Provider: ${hasOpenAI ? 'OPENAI (PRODUCTION)' : 'NOT CONFIGURED'}`);
 
 /**
- * Get chat history for a tenant
+ * Get chat history for a tenant (includes voice transcripts for unified context)
+ * @param {string} tenantId 
+ * @param {object} options - { includeVoice: boolean, limit: number }
  */
-async function getChatHistory(tenantId) {
+async function getChatHistory(tenantId, options = {}) {
+    const { includeVoice = true, limit = 50 } = options;
+
     try {
+        const where = { tenantId };
+
+        // Optionally filter to only chat messages
+        if (!includeVoice) {
+            where.source = 'chat';
+        }
+
         const messages = await prisma.message.findMany({
-            where: { tenantId },
-            orderBy: { createdAt: 'asc' }, // Oldest first for proper context
-            take: 50 // Limit to prevent token overflow
+            where,
+            orderBy: { createdAt: 'asc' },
+            take: limit,
+            select: {
+                id: true,
+                role: true,
+                content: true,
+                source: true,
+                callSessionId: true,
+                createdAt: true
+            }
         });
         return messages;
     } catch (error) {
@@ -36,6 +55,10 @@ async function getChatHistory(tenantId) {
 
 /**
  * Add message to chat history
+ * @param {string} tenantId 
+ * @param {string} role - 'user' or 'assistant'
+ * @param {string} content 
+ * @param {object} metadata - { sessionId, source, callSessionId }
  */
 async function addToHistory(tenantId, role, content, metadata = {}) {
     try {
@@ -45,6 +68,8 @@ async function addToHistory(tenantId, role, content, metadata = {}) {
                 role,
                 content,
                 sessionId: metadata.sessionId || 'default',
+                source: metadata.source || 'chat',
+                callSessionId: metadata.callSessionId || null
             }
         });
         return { ...message, ...metadata };
@@ -55,6 +80,7 @@ async function addToHistory(tenantId, role, content, metadata = {}) {
             id: `temp_${Date.now()}`,
             role,
             content,
+            source: metadata.source || 'chat',
             timestamp: new Date().toISOString(),
             ...metadata
         };
@@ -332,6 +358,52 @@ function getProviderInfo() {
     };
 }
 
+/**
+ * Get unified conversation history across all channels (chat, voice, sms)
+ * Groups messages by call session for voice calls
+ */
+async function getUnifiedHistory(tenantId, options = {}) {
+    const { limit = 100 } = options;
+
+    try {
+        // Get all messages
+        const messages = await prisma.message.findMany({
+            where: { tenantId },
+            orderBy: { createdAt: 'asc' },
+            take: limit,
+            include: {
+                callSession: {
+                    select: {
+                        id: true,
+                        callerPhone: true,
+                        summary: true,
+                        status: true
+                    }
+                }
+            }
+        });
+
+        // Group and format for unified view
+        const unified = messages.map(msg => ({
+            id: msg.id,
+            role: msg.role,
+            content: msg.content,
+            source: msg.source,
+            timestamp: msg.createdAt,
+            callContext: msg.callSession ? {
+                sessionId: msg.callSession.id,
+                phone: msg.callSession.callerPhone,
+                summary: msg.callSession.summary
+            } : null
+        }));
+
+        return unified;
+    } catch (error) {
+        console.error('Error fetching unified history:', error);
+        return [];
+    }
+}
+
 module.exports = {
     getChatHistory,
     addToHistory,
@@ -339,5 +411,6 @@ module.exports = {
     processVoiceInput,
     clearChatHistory,
     getConversationContext,
-    getProviderInfo
+    getProviderInfo,
+    getUnifiedHistory
 };

@@ -98,19 +98,92 @@ router.post('/webhook/voice/outbound', (req, res) => {
     }
 });
 
-// Status Callback
+// Status Callback - Updates call session in database
 router.post('/webhook/status', async (req, res) => {
     try {
         const { CallSid, CallStatus, CallDuration } = req.body;
-        console.log(`[Twilio] Call Status ${CallSid}: ${CallStatus} (${CallDuration}s)`);
+        console.log(`[Twilio] Call Status ${CallSid}: ${CallStatus} (${CallDuration || 0}s)`);
 
-        // Here we could update database status
-        // await voiceService.updateCallStatus(CallSid, CallStatus, CallDuration);
+        // Update call session in database
+        const prisma = require('../lib/prisma');
+        const session = await prisma.callSession.findFirst({
+            where: { callSid: CallSid }
+        });
+
+        if (session) {
+            const updates = {};
+
+            if (CallStatus === 'completed' || CallStatus === 'busy' || CallStatus === 'no-answer' || CallStatus === 'failed') {
+                updates.status = CallStatus === 'completed' ? 'completed' : 'failed';
+                updates.endedAt = new Date();
+                if (CallDuration) updates.duration = parseInt(CallDuration);
+            }
+
+            if (Object.keys(updates).length > 0) {
+                await prisma.callSession.update({
+                    where: { id: session.id },
+                    data: updates
+                });
+            }
+        }
 
         res.status(200).end();
     } catch (error) {
         console.error('Twilio Status Callback Error:', error);
         res.status(500).send('Error');
+    }
+});
+
+// Outbound Call with Media Stream - Connects to AI voice agent
+router.post('/webhook/voice/outbound-stream', async (req, res) => {
+    try {
+        const tenantId = req.query.tenantId;
+        const VoiceResponse = require('twilio').twiml.VoiceResponse;
+        const response = new VoiceResponse();
+
+        // Get tenant config for personalized greeting
+        const prisma = require('../lib/prisma');
+        const tenant = await prisma.tenant.findUnique({
+            where: { id: tenantId },
+            select: { aiConfig: true, name: true }
+        });
+
+        const aiConfig = tenant?.aiConfig || {};
+        const greeting = aiConfig.welcomeMessage || `Hello, this is ${tenant?.name || 'your AI assistant'} calling.`;
+
+        // Optional: Initial greeting before connecting to AI
+        response.say({ voice: 'Polly.Joanna' }, greeting);
+
+        // Connect to WebSocket media stream for AI processing
+        const host = process.env.APP_URL
+            ? process.env.APP_URL.replace('https://', '').replace('http://', '')
+            : req.get('host');
+
+        const connect = response.connect();
+        const stream = connect.stream({
+            url: `wss://${host}/media-stream`
+        });
+
+        // Pass tenant context for AI configuration
+        stream.parameter({ name: 'tenantId', value: tenantId });
+        stream.parameter({ name: 'direction', value: 'outbound' });
+        stream.parameter({ name: 'CallSid', value: req.body.CallSid });
+
+        console.log(`[Twilio] Outbound call connecting to media stream for tenant ${tenantId}`);
+
+        res.type('text/xml');
+        res.send(response.toString());
+    } catch (error) {
+        console.error('Twilio Outbound Stream Webhook Error:', error);
+
+        // Fallback: Simple message if stream fails
+        const VoiceResponse = require('twilio').twiml.VoiceResponse;
+        const response = new VoiceResponse();
+        response.say({ voice: 'Polly.Joanna' }, 'We are experiencing technical difficulties. Please try again later.');
+        response.hangup();
+
+        res.type('text/xml');
+        res.send(response.toString());
     }
 });
 

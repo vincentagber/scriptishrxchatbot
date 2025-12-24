@@ -42,6 +42,8 @@ model Tenant {
   workflows        Workflow[]
   campaigns        Campaign[]
   invites          Invite[]
+  callSessions     CallSession[]
+  customTools      CustomTool[]
 
   @@index([name])
 }
@@ -107,6 +109,7 @@ model Client {
   updatedAt DateTime @updatedAt
   bookings  Booking[]
   minutes   MeetingMinute[]
+  callSessions CallSession[]
 
   @@index([tenantId])
   @@index([phone])
@@ -146,17 +149,48 @@ model MeetingMinute {
 }
 
 model Message {
-  id        String   @id @default(uuid())
-  sessionId String
-  role      String
-  content   String
-  tenantId  String?
-  tenant    Tenant?  @relation(fields: [tenantId], references: [id])
-  userId    String?
-  createdAt DateTime @default(now())
+  id            String       @id @default(uuid())
+  sessionId     String
+  role          String
+  content       String
+  tenantId      String?
+  tenant        Tenant?      @relation(fields: [tenantId], references: [id])
+  userId        String?
+  source        String       @default("chat") // chat, voice, sms
+  callSessionId String?
+  callSession   CallSession? @relation(fields: [callSessionId], references: [id])
+  createdAt     DateTime     @default(now())
 
   @@index([sessionId])
   @@index([tenantId])
+  @@index([callSessionId])
+}
+
+model CallSession {
+  id           String    @id @default(uuid())
+  tenantId     String
+  tenant       Tenant    @relation(fields: [tenantId], references: [id])
+  clientId     String?
+  client       Client?   @relation(fields: [clientId], references: [id])
+  callSid      String    @unique // Twilio Call SID
+  callerPhone  String?
+  status       String    @default("in_progress") // in_progress, completed, failed
+  direction    String    @default("inbound") // inbound, outbound
+  startedAt    DateTime  @default(now())
+  endedAt      DateTime?
+  duration     Int?      // Duration in seconds
+  transcript   String?   // Full conversation transcript
+  summary      String?   // AI-generated summary
+  actionItems  Json?     // Extracted action items [{type, description, completed}]
+  bookingId    String?   // If a booking was created during call
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  messages     Message[]
+
+  @@index([tenantId])
+  @@index([clientId])
+  @@index([callSid])
+  @@index([callerPhone])
 }
 
 model Subscription {
@@ -243,4 +277,35 @@ model Invite {
   @@index([token])
   @@index([email])
   @@index([tenantId])
+}
+
+// Custom Function Calling Tools for Voice/Chat Agents
+model CustomTool {
+  id          String   @id @default(uuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  name        String   // Function name: e.g., "check_inventory", "schedule_pickup"
+  displayName String?  // Human-readable name for UI
+  description String   // Description for OpenAI function calling
+  
+  // OpenAI Function Parameters Schema (JSON Schema format)
+  parameters  Json     // { type: "object", properties: {...}, required: [...] }
+  
+  // Execution Configuration
+  handlerType String   @default("webhook") // webhook, internal, api
+  webhookUrl  String?  // URL to call for webhook handlers
+  apiConfig   Json?    // For api handlers: { endpoint, method, headers, bodyTemplate }
+  internalHandler String? // For internal: built-in handler name
+  
+  // Settings
+  isActive    Boolean  @default(true)
+  timeout     Int      @default(10000) // Timeout in ms
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@index([isActive])
 }
