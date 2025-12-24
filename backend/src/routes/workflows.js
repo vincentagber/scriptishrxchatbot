@@ -77,6 +77,16 @@ router.post('/',
                 }
             }).catch(err => console.error('Audit log failed:', err));
 
+            // Notify User
+            const notificationService = require('../services/notificationService');
+            await notificationService.createNotification(
+                userId,
+                'Workflow Created',
+                `Your workflow "${name}" has been successfully created.`,
+                'success',
+                '/dashboard/workflows'
+            );
+
             res.status(201).json({
                 success: true,
                 workflow,

@@ -31,23 +31,41 @@ router.post('/webhook/sms', async (req, res) => {
 });
 
 // Gather Action (User spoke something)
+// Gather Action (User spoke something)
 router.post('/webhook/voice/gather', async (req, res) => {
     try {
         const tenantId = req.query.tenantId;
         const speechResult = req.body.SpeechResult;
 
-        console.log(`[Twilio] Gather Result for Tenant ${tenantId}: ${speechResult}`);
+        console.log(`[Twilio] Gather Result for Tenant ${tenantId}: "${speechResult}"`);
 
         // Use ChatService/OpenAI to determine next response
-        const chatService = require('../services/chatService'); // Lazy load to avoid circular dependency if any
-        // Actually, we should use a proper controller logic here or in Service.
-        // For now, let's just echo or say generic.
-
+        const chatService = require('../services/chatService');
         const VoiceResponse = require('twilio').twiml.VoiceResponse;
         const response = new VoiceResponse();
 
-        response.say(`You said: ${speechResult}. We will connect you to an agent shortly.`);
-        // response.dial(...)
+        if (speechResult) {
+            // Get AI Response
+            const aiResult = await chatService.processMessage(speechResult, tenantId);
+            const aiSpeech = aiResult.success ? aiResult.response : "I'm sorry, I'm having trouble connecting right now.";
+
+            response.say({ voice: 'alice' }, aiSpeech);
+        } else {
+            // No speech detected? Just prompt again
+            // response.say({ voice: 'alice' }, "I didn't catch that.");
+        }
+
+        // Loop: Listen again
+        const gather = response.gather({
+            input: 'speech',
+            action: `${process.env.APP_URL}/api/twilio/webhook/voice/gather?tenantId=${tenantId}`,
+            method: 'POST',
+            timeout: 2,
+            language: 'en-US'
+        });
+
+        // Loop redirect if timeout
+        response.redirect(`${process.env.APP_URL}/api/twilio/webhook/voice/gather?tenantId=${tenantId}`);
 
         res.type('text/xml');
         res.send(response.toString());
@@ -68,7 +86,7 @@ router.post('/webhook/voice/outbound', (req, res) => {
         // Keep line open or record? For now, pause then hangup.
         response.pause({ length: 1 });
 
-        // Optional: Stream for AI analysis if desired
+
         // const startStream = response.connect();
         // startStream.stream({ url: `wss://${req.get('host')}/media-stream` });
 

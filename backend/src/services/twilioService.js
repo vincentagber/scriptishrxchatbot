@@ -105,6 +105,19 @@ class TwilioService {
             url: `wss://${host}/media-stream`
         });
 
+        // Pass context via Twilio parameters
+        const tenant = await prisma.tenant.findFirst({
+            where: { phoneNumber: To },
+            select: { id: true }
+        });
+
+        if (tenant) {
+            startStream.stream.parameter({
+                name: 'tenantId',
+                value: tenant.id
+            });
+        }
+
         return voiceResponse.toString();
     }
 

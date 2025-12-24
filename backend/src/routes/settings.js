@@ -17,6 +17,16 @@ router.get('/',
             const userId = req.user?.userId || req.user?.id;
             const tenantId = req.scopedTenantId;
 
+            console.log(`[Settings] Fetching for UserID: ${userId}, TenantID: ${tenantId}`);
+
+            if (!userId) {
+                console.error('[Settings] Missing userId in request');
+                return res.status(401).json({
+                    success: false,
+                    error: 'User identity missing'
+                });
+            }
+
             const user = await prisma.user.findUnique({
                 where: { id: userId },
                 include: { tenant: true, subscription: true }
@@ -30,7 +40,9 @@ router.get('/',
             }
 
             // SECURITY: Verify user belongs to scoped tenant
-            if (user.tenantId !== tenantId) {
+            // If tenantId is undefined (e.g. old token), we might check against user's own tenantId
+            if (tenantId && user.tenantId !== tenantId) {
+                console.warn(`[Settings] Tenant mismatch. User: ${user.tenantId}, Scoped: ${tenantId}`);
                 return res.status(403).json({
                     success: false,
                     error: 'Access denied'

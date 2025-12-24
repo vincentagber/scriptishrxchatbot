@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
     LayoutDashboard, Users, Calendar, Settings, Phone, MessageSquare, Search,
     Bell, Menu, FileText, LogOut, User, Zap, PieChart, X, ChevronRight
@@ -16,7 +16,8 @@ interface UserPayload {
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
-
+    const router = useRouter();
+    const [sidebarOpen, setSidebarOpen] = useState(true);
     const [user, setUser] = useState<UserPayload | null>(null);
     const [openProfile, setOpenProfile] = useState(false);
     const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -111,18 +112,55 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }, [searchTerm]);
 
     // Real-time Notifications
+    // Real-time Notifications
+    const [notifications, setNotifications] = useState<any[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
+    const [showNotifications, setShowNotifications] = useState(false);
+    const notificationRef = useRef<HTMLDivElement>(null);
+
+    // Click outside to close notifications
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+                setShowNotifications(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const markAllAsRead = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/notifications/read-all`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (res.ok) {
+                setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+                setUnreadCount(0);
+                // Optional: Close dropdown after marking read? No, keep it open to see state change.
+            }
+        } catch (error) {
+            console.error('Failed to mark notifications as read', error);
+        }
+    };
 
     useEffect(() => {
         const token = localStorage.getItem('token');
         if (!token) return;
 
-        // 1. Fetch initial count
+        // 1. Fetch initial notifications
         if (token) {
             import('@/lib/api').then(m => {
                 m.default.get('/notifications')
                     .then(({ data }) => {
                         if (Array.isArray(data)) {
+                            setNotifications(data);
                             setUnreadCount(data.filter((n: any) => !n.isRead).length);
                         }
                     })
@@ -131,7 +169,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }
 
         // 2. Connect Socket
-        // Dynamic import to avoid SSR issues if any, though 'use client' handles it usually
         import('socket.io-client').then(({ io }) => {
             const socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000', {
                 auth: { token }
@@ -139,8 +176,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             socket.on('notification:new', (newNotification) => {
                 console.log('New notification received:', newNotification);
+                setNotifications(prev => [newNotification, ...prev]);
                 setUnreadCount(prev => prev + 1);
-                // Can add Toast here
             });
 
             return () => socket.disconnect();
@@ -284,13 +321,78 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     {/* Right: Actions + Profile */}
                     <div className="flex items-center gap-6">
 
-                        <div className="flex items-center gap-2">
-                            <button className="relative p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors">
-                                <Bell className="w-5 h-5" />
+                        <div className="relative" ref={notificationRef}>
+                            <button
+                                onClick={() => setShowNotifications(!showNotifications)}
+                                className={`relative p-2.5 rounded-full transition-all duration-200 outline-none group ${showNotifications ? 'bg-blue-50 text-blue-600 ring-2 ring-blue-100' : 'text-gray-500 hover:bg-gray-100'}`}
+                            >
+                                <Bell className="w-6 h-6 stroke-[1.5]" />
                                 {unreadCount > 0 && (
-                                    <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
+                                    <span className="absolute top-1.5 right-1.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full border-2 border-white transform translate-x-1/4 -translate-y-1/4">
+                                        {unreadCount > 99 ? '99+' : unreadCount}
+                                    </span>
                                 )}
                             </button>
+
+                            {/* Notifications Dropdown */}
+                            {showNotifications && (
+                                <div className="absolute right-0 mt-3 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden animate-in fade-in slide-in-from-top-2 zoom-in-95 origin-top-right z-[100]">
+                                    <div className="px-5 py-4 border-b border-gray-50 bg-gray-50/50 flex justify-between items-center backdrop-blur-sm">
+                                        <div className="flex items-baseline gap-2">
+                                            <h3 className="font-bold text-gray-900">Notifications</h3>
+                                            {unreadCount > 0 && <span className="text-xs font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">{unreadCount} New</span>}
+                                        </div>
+                                        {unreadCount > 0 && (
+                                            <button
+                                                onClick={markAllAsRead}
+                                                className="text-xs font-semibold text-gray-500 hover:text-blue-600 transition-colors flex items-center gap-1"
+                                            >
+                                                <span>Mark all read</span>
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    <div className="max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 hover:scrollbar-thumb-gray-300">
+                                        {notifications.length > 0 ? (
+                                            notifications.map((n, i) => (
+                                                <div key={i} className={`p-4 border-b border-gray-50 hover:bg-gray-50 transition-colors group relative ${!n.isRead ? 'bg-blue-50/20' : ''}`}>
+                                                    <div className="flex gap-4">
+                                                        <div className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 transition-colors ${!n.isRead ? 'bg-blue-500 ring-4 ring-blue-50' : 'bg-transparent'}`} />
+                                                        <div className="flex-1">
+                                                            <div className="flex justify-between items-start mb-1">
+                                                                <p className={`text-sm ${!n.isRead ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>{n.title}</p>
+                                                                <span className="text-[10px] text-gray-400 whitespace-nowrap ml-2">
+                                                                    {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                                </span>
+                                                            </div>
+                                                            <p className="text-xs text-gray-500 leading-relaxed max-w-[90%]">{n.message}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                                                <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mb-3">
+                                                    <Bell className="w-5 h-5 text-gray-300" />
+                                                </div>
+                                                <p className="text-sm font-medium text-gray-900">No notifications</p>
+                                                <p className="text-xs text-gray-500 mt-1">You're all caught up!</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="p-2 border-t border-gray-50 bg-gray-50/50 text-center">
+                                        <button
+                                            onClick={() => {
+                                                setShowNotifications(false);
+                                                router.push('/dashboard/notifications');
+                                            }}
+                                            className="text-xs font-medium text-gray-500 hover:text-blue-600 transition-colors w-full py-1"
+                                        >
+                                            View all history
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Profile Section (Visible Info) */}
