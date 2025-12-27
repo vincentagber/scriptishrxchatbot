@@ -14,11 +14,12 @@ const WebSocket = require('ws');
 const agentToolsService = require('./agentToolsService');
 const summarizeService = require('./summarizeService');
 const chatService = require('./chatService');
+const logger = require('../lib/logger')('VoiceService');
 
 // In-memory storage for call logs (legacy support)
 const callLogs = [];
 
-// Active call sessions for transcript collection
+// Active call sessions
 const activeSessions = new Map();
 
 /**
@@ -111,12 +112,100 @@ async function getCallSession(callSessionId, tenantId) {
     return session;
 }
 
+// Configuration
+const voiceConfig = require('../config/voice');
+
+/**
+ * SmartWebSocket - Robust WebSocket wrapper with auto-reconnection
+ */
+class SmartWebSocket extends WebSocket {
+    constructor(url, options = {}, retryConfig = {}) {
+        super(url, options);
+        this._url = url;
+        this._options = options;
+        this._retryConfig = {
+            maxRetries: retryConfig.maxRetries || 5,
+            initialDelay: retryConfig.initialDelay || 1000,
+            factor: 2,
+            ...retryConfig
+        };
+        this._retryCount = 0;
+        this._isReconnecting = false;
+        this._intentionalClose = false;
+        this._messageQueue = [];
+
+        this.init();
+    }
+
+    init() {
+        this.addEventListener('close', this.handleClose.bind(this));
+        this.addEventListener('error', this.handleError.bind(this));
+        this.addEventListener('open', () => {
+            logger.info('Connected to OpenAI');
+            this._retryCount = 0;
+            this._isReconnecting = false;
+            this.flushQueue();
+        });
+    }
+
+    handleClose(event) {
+        if (this._intentionalClose) return;
+
+        logger.warn(`Connection closed (Code: ${event.code}). Retry ${this._retryCount}/${this._retryConfig.maxRetries}`);
+
+        if (this._retryCount < this._retryConfig.maxRetries) {
+            this._isReconnecting = true;
+            const delay = this._retryConfig.initialDelay * Math.pow(this._retryConfig.factor, this._retryCount);
+            this._retryCount++;
+
+            setTimeout(() => {
+                logger.info(`Reconnecting... (${delay}ms)`);
+                this.reconnect();
+            }, delay);
+        } else {
+            logger.error('Max retries exhausted. Connection failed.');
+            this.emit('max_retries_exceeded');
+        }
+    }
+
+    handleError(error) {
+        if (!this._isReconnecting) {
+            logger.error('WebSocket Error', error);
+        }
+    }
+
+    reconnect() {
+        if (this._options.onReconnect) {
+            this._options.onReconnect();
+        }
+    }
+
+    send(data) {
+        if (this.readyState === WebSocket.OPEN) {
+            super.send(data);
+        } else {
+            logger.warn('Buffering message (Socket not open)');
+            this._messageQueue.push(data);
+        }
+    }
+
+    flushQueue() {
+        while (this._messageQueue.length > 0 && this.readyState === WebSocket.OPEN) {
+            super.send(this._messageQueue.shift());
+        }
+    }
+
+    close() {
+        this._intentionalClose = true;
+        super.close();
+    }
+}
+
 /**
  * Handle WebSocket Connection for Twilio Media Stream + OpenAI Realtime
- * Enhanced with transcript collection and function calling
  */
 function handleConnection(ws, req) {
-    console.log('[VoiceService] New Media Stream Connection');
+    logger.info('New Media Stream Connection');
 
     let streamSid = null;
     let openAiWs = null;
@@ -124,153 +213,143 @@ function handleConnection(ws, req) {
     let tenantId = null;
     let callerPhone = null;
     let startTime = Date.now();
+    let currentInstructions = voiceConfig.system.defaultInstructions;
 
     // Transcript collection
     const transcriptParts = [];
-    let currentSpeaker = null;
 
     // Connect to OpenAI Realtime API
-    try {
-        const url = "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17";
-        openAiWs = new WebSocket(url, {
-            headers: {
-                "Authorization": "Bearer " + process.env.OPENAI_API_KEY,
-                "OpenAI-Beta": "realtime=v1",
-            },
-        });
-    } catch (error) {
-        console.error("[VoiceService] Failed to connect to OpenAI:", error);
-        ws.close();
-        return;
-    }
-
-    // OpenAI Handlers
-    openAiWs.on('open', () => {
-        console.log('[VoiceService] Connected to OpenAI Realtime API');
-
-        // Initialize Session with tools
-        const sessionUpdate = {
-            type: 'session.update',
-            session: {
-                turn_detection: { type: 'server_vad' },
-                input_audio_format: 'g711_ulaw',
-                output_audio_format: 'g711_ulaw',
-                voice: 'alloy',
-                instructions: 'You are a helpful AI assistant. Answer concisely and professionally.',
-                modalities: ["text", "audio"],
-                temperature: 0.8,
-                tools: agentToolsService.getToolsForSession(),
-                tool_choice: 'auto'
-            }
-        };
-        openAiWs.send(JSON.stringify(sessionUpdate));
-    });
-
-    openAiWs.on('message', async (data) => {
+    const connectOpenAI = () => {
         try {
-            const response = JSON.parse(data);
+            const url = `${voiceConfig.openai.url}?model=${voiceConfig.openai.model}`;
+            openAiWs = new WebSocket(url, {
+                headers: {
+                    "Authorization": "Bearer " + process.env.OPENAI_API_KEY,
+                    "OpenAI-Beta": "realtime=v1",
+                },
+            });
 
-            switch (response.type) {
-                case 'response.audio.delta':
-                    // Stream audio back to Twilio
-                    if (response.delta && streamSid) {
-                        const audioDelta = {
-                            event: 'media',
-                            streamSid: streamSid,
-                            media: { payload: response.delta }
-                        };
-                        ws.send(JSON.stringify(audioDelta));
-                    }
-                    break;
-
-                case 'response.audio_transcript.done':
-                    // Capture AI's spoken response for transcript
-                    if (response.transcript) {
-                        transcriptParts.push({
-                            role: 'assistant',
-                            content: response.transcript,
-                            timestamp: Date.now()
-                        });
-
-                        // Save to database as message
-                        if (callSessionId && tenantId) {
-                            await saveTranscriptMessage(
-                                tenantId,
-                                callSessionId,
-                                'assistant',
-                                response.transcript
-                            );
-                        }
-                    }
-                    break;
-
-                case 'conversation.item.input_audio_transcription.completed':
-                    // Capture user's spoken input for transcript
-                    if (response.transcript) {
-                        transcriptParts.push({
-                            role: 'user',
-                            content: response.transcript,
-                            timestamp: Date.now()
-                        });
-
-                        // Save to database as message
-                        if (callSessionId && tenantId) {
-                            await saveTranscriptMessage(
-                                tenantId,
-                                callSessionId,
-                                'user',
-                                response.transcript
-                            );
-                        }
-                    }
-                    break;
-
-                case 'response.function_call_arguments.done':
-                    // Handle function call from AI
-                    console.log('[VoiceService] Function call:', response.name);
-
-                    const toolResult = await agentToolsService.executeTool(
-                        response.name,
-                        JSON.parse(response.arguments || '{}'),
-                        { tenantId, callerPhone, callSessionId }
-                    );
-
-                    // Send tool result back to OpenAI
-                    if (openAiWs.readyState === WebSocket.OPEN) {
-                        openAiWs.send(JSON.stringify({
-                            type: 'conversation.item.create',
-                            item: {
-                                type: 'function_call_output',
-                                call_id: response.call_id,
-                                output: JSON.stringify(toolResult)
-                            }
-                        }));
-
-                        // Trigger response generation
-                        openAiWs.send(JSON.stringify({ type: 'response.create' }));
-                    }
-                    break;
-
-                case 'response.done':
-                    console.log('[OpenAI] Response completed');
-                    break;
-
-                case 'error':
-                    console.error('[OpenAI] Error:', response.error);
-                    break;
-            }
-        } catch (e) {
-            console.error('[VoiceService] Error processing OpenAI message:', e);
+            setupOpenAIHandlers();
+        } catch (error) {
+            logger.error("Failed to connect to OpenAI", error);
+            ws.close();
         }
-    });
+    };
 
-    openAiWs.on('error', (error) => {
-        console.error('[OpenAI] WebSocket error:', error);
-    });
+    const setupOpenAIHandlers = () => {
+        openAiWs.on('open', () => {
+            logger.info('Connected to OpenAI Realtime API');
 
-    openAiWs.on('close', () => {
-        console.log('[OpenAI] WebSocket closed');
-    });
+            // Send initial session configuration
+            const sessionUpdate = {
+                type: 'session.update',
+                session: {
+                    turn_detection: { type: 'server_vad' }, // Enable Voice Activity Detection
+                    input_audio_format: voiceConfig.twilio.mediaFormat,
+                    output_audio_format: voiceConfig.twilio.mediaFormat,
+                    voice: voiceConfig.openai.voice,
+                    instructions: currentInstructions,
+                    modalities: ["text", "audio"],
+                    temperature: voiceConfig.openai.temperature,
+                    tools: agentToolsService.getToolsForSession(),
+                    tool_choice: 'auto'
+                }
+            };
+            openAiWs.send(JSON.stringify(sessionUpdate));
+        });
+
+        openAiWs.on('message', async (data) => {
+            try {
+                const response = JSON.parse(data);
+
+                switch (response.type) {
+                    case 'input_audio_buffer.speech_started':
+                        // BARGE-IN DETECTED: User started speaking
+                        logger.info('Barge-in Detected via VAD', { streamSid });
+
+                        // 1. Clear Twilio Audio Buffer immediately
+                        if (streamSid && ws.readyState === WebSocket.OPEN) {
+                            const clearMsg = {
+                                event: 'clear',
+                                streamSid: streamSid
+                            };
+                            ws.send(JSON.stringify(clearMsg));
+                        }
+
+                        // 2. Cancel OpenAI Generation
+                        if (openAiWs.readyState === WebSocket.OPEN) {
+                            openAiWs.send(JSON.stringify({ type: 'response.cancel' }));
+                        }
+                        break;
+
+                    case 'response.audio.delta':
+                        // Stream audio back to Twilio
+                        if (response.delta && streamSid && ws.readyState === WebSocket.OPEN) {
+                            const audioDelta = {
+                                event: 'media',
+                                streamSid: streamSid,
+                                media: { payload: response.delta }
+                            };
+                            ws.send(JSON.stringify(audioDelta));
+                        }
+                        break;
+
+                    case 'response.audio_transcript.done':
+                        // Capture AI's spoken response
+                        if (response.transcript) {
+                            transcriptParts.push({ role: 'assistant', content: response.transcript, timestamp: Date.now() });
+                            if (callSessionId && tenantId) {
+                                await saveTranscriptMessage(tenantId, callSessionId, 'assistant', response.transcript);
+                            }
+                        }
+                        break;
+
+                    case 'conversation.item.input_audio_transcription.completed':
+                        // Capture User's spoken input
+                        if (response.transcript) {
+                            transcriptParts.push({ role: 'user', content: response.transcript, timestamp: Date.now() });
+                            if (callSessionId && tenantId) {
+                                await saveTranscriptMessage(tenantId, callSessionId, 'user', response.transcript);
+                            }
+                        }
+                        break;
+
+                    case 'response.function_call_arguments.done':
+                        logger.info('Function call invoked', { function: response.name, callSessionId });
+                        const toolResult = await agentToolsService.executeTool(
+                            response.name,
+                            JSON.parse(response.arguments || '{}'),
+                            { tenantId, callerPhone, callSessionId }
+                        );
+
+                        if (openAiWs.readyState === WebSocket.OPEN) {
+                            openAiWs.send(JSON.stringify({
+                                type: 'conversation.item.create',
+                                item: {
+                                    type: 'function_call_output',
+                                    call_id: response.call_id,
+                                    output: JSON.stringify(toolResult)
+                                }
+                            }));
+                            openAiWs.send(JSON.stringify({ type: 'response.create' }));
+                        }
+                        break;
+
+                    case 'error':
+                        logger.error('OpenAI Error Event', null, { error: response.error });
+                        break;
+                }
+            } catch (e) {
+                logger.error('Error processing OpenAI message', e);
+            }
+        });
+
+        openAiWs.on('close', () => logger.info('OpenAI WebSocket closed'));
+        openAiWs.on('error', (err) => logger.error('OpenAI WebSocket error', err));
+    };
+
+    // Initial connection
+    connectOpenAI();
 
     // Twilio Handlers (Client -> Server)
     ws.on('message', async (message) => {
@@ -280,140 +359,129 @@ function handleConnection(ws, req) {
             switch (msg.event) {
                 case 'start':
                     streamSid = msg.start.streamSid;
-                    console.log(`[Twilio] Stream started: ${streamSid}`);
+                    logger.info('Twilio Stream started', { streamSid });
 
-                    // Extract call parameters
+                    // Initial Parameters
                     const params = msg.start.customParameters || {};
                     tenantId = params.tenantId;
                     callerPhone = params.From || msg.start.from;
                     const callSid = params.CallSid || msg.start.callSid;
 
-                    // Create call session in database
+                    // Session Creation logic matches previous implementation
                     if (tenantId && callSid) {
-                        try {
-                            // Look up caller as client
-                            let clientId = null;
-                            if (callerPhone) {
-                                const client = await prisma.client.findFirst({
-                                    where: {
-                                        tenantId,
-                                        phone: { contains: callerPhone.slice(-10) }
-                                    }
-                                });
-                                if (client) clientId = client.id;
-                            }
-
-                            const session = await prisma.callSession.create({
-                                data: {
-                                    tenantId,
-                                    clientId,
-                                    callSid,
-                                    callerPhone,
-                                    status: 'in_progress',
-                                    direction: 'inbound',
-                                    startedAt: new Date()
-                                }
-                            });
-                            callSessionId = session.id;
+                        // ... (Reuse existing logic for fast implementation)
+                        setupCallSession(tenantId, callSid, callerPhone).then((id) => {
+                            callSessionId = id;
                             activeSessions.set(streamSid, { callSessionId, tenantId });
-
-                            console.log(`[VoiceService] Call session created: ${callSessionId}`);
-                        } catch (e) {
-                            console.error('[VoiceService] Error creating call session:', e);
-                        }
-                    }
-
-                    // Fetch Tenant Config to update System Prompt
-                    if (tenantId) {
-                        const tenant = await prisma.tenant.findUnique({
-                            where: { id: tenantId },
-                            select: { aiConfig: true, name: true }
                         });
 
-                        if (tenant) {
-                            const aiConfig = tenant.aiConfig || {};
-                            let instructions = aiConfig.systemPrompt ||
-                                `You are the AI assistant for ${tenant.name}. Be helpful, professional, and concise.`;
-
-                            // Add caller context if known
-                            if (callerPhone) {
-                                const client = await prisma.client.findFirst({
-                                    where: { tenantId, phone: { contains: callerPhone.slice(-10) } },
-                                    select: { name: true }
-                                });
-                                if (client) {
-                                    instructions += `\n\nThe caller is ${client.name}, a returning customer.`;
-                                }
-                            }
-
-                            // Append FAQs to instructions
-                            if (aiConfig.faqs && Array.isArray(aiConfig.faqs) && aiConfig.faqs.length > 0) {
-                                instructions += `\n\nKnowledge Base:\n${aiConfig.faqs.map(f => `- ${f.question}: ${f.answer}`).join('\n')}`;
-                            }
-
-                            // Update OpenAI session with tenant config
-                            if (openAiWs.readyState === WebSocket.OPEN) {
-                                openAiWs.send(JSON.stringify({
-                                    type: 'session.update',
-                                    session: {
-                                        instructions,
-                                        voice: aiConfig.voiceId || 'alloy'
-                                    }
-                                }));
-                            }
-                        }
+                        // Retrieve and set customized System Prompt
+                        updateSystemPrompt(tenantId, callerPhone, openAiWs).then(prompt => {
+                            currentInstructions = prompt;
+                        });
                     }
                     break;
 
                 case 'media':
-                    // Forward audio to OpenAI
-                    if (openAiWs.readyState === WebSocket.OPEN) {
-                        const audioAppend = {
+                    if (openAiWs && openAiWs.readyState === WebSocket.OPEN) {
+                        openAiWs.send(JSON.stringify({
                             type: 'input_audio_buffer.append',
                             audio: msg.media.payload
-                        };
-                        openAiWs.send(JSON.stringify(audioAppend));
+                        }));
                     }
                     break;
 
                 case 'stop':
-                    console.log(`[Twilio] Stream stopped: ${msg.stop?.streamSid || streamSid}`);
-
-                    // Complete the call session
-                    if (callSessionId) {
-                        await completeCallSession(callSessionId, transcriptParts, startTime);
-                    }
-
-                    if (openAiWs.readyState === WebSocket.OPEN) {
-                        openAiWs.close();
-                    }
+                    logger.info('Twilio Stream stopped', { streamSid: msg.stop?.streamSid || streamSid });
+                    cleanupSession();
                     break;
             }
         } catch (e) {
-            console.error('[VoiceService] Error parsing Twilio message:', e);
+            logger.error('Error parsing Twilio message', e);
         }
     });
 
-    ws.on('close', async () => {
-        console.log('[VoiceService] Client disconnected');
-
-        // Complete call session if still in progress
+    const cleanupSession = async () => {
         if (callSessionId) {
             await completeCallSession(callSessionId, transcriptParts, startTime);
         }
-
         if (openAiWs && openAiWs.readyState === WebSocket.OPEN) {
             openAiWs.close();
         }
+        if (streamSid) activeSessions.delete(streamSid);
+    };
 
-        if (streamSid) {
-            activeSessions.delete(streamSid);
+    ws.on('close', async () => {
+        logger.info('Client disconnected');
+        cleanupSession();
+    });
+
+    // Helper to keep code clean - duplicates original logic wrapped in functions
+    async function setupCallSession(tId, cSid, cPhone) {
+        try {
+            let clientId = null;
+            if (cPhone) {
+                const client = await prisma.client.findFirst({
+                    where: { tenantId: tId, phone: { contains: cPhone.slice(-10) } }
+                });
+                if (client) clientId = client.id;
+            }
+
+            const session = await prisma.callSession.create({
+                data: {
+                    tenantId: tId,
+                    clientId,
+                    callSid: cSid,
+                    callerPhone: cPhone,
+                    status: 'in_progress',
+                    direction: 'inbound',
+                    startedAt: new Date()
+                }
+            });
+            logger.info('Call session created', { callSessionId: session.id, callSid: cSid });
+            return session.id;
+        } catch (e) {
+            logger.error('Error creating call session', e);
+            return null;
         }
-    });
+    }
 
-    ws.on('error', (error) => {
-        console.error('[VoiceService] WebSocket error:', error);
-    });
+    async function updateSystemPrompt(tId, cPhone, wsTarget) {
+        try {
+            const tenant = await prisma.tenant.findUnique({
+                where: { id: tId },
+                select: { aiConfig: true, name: true }
+            });
+
+            if (tenant) {
+                const aiConfig = tenant.aiConfig || {};
+                let instructions = aiConfig.systemPrompt || voiceConfig.system.defaultInstructions;
+
+                if (cPhone) {
+                    const client = await prisma.client.findFirst({
+                        where: { tenantId: tId, phone: { contains: cPhone.slice(-10) } },
+                        select: { name: true }
+                    });
+                    if (client) instructions += `\n\nThe caller is ${client.name}.`;
+                }
+
+                if (aiConfig.faqs?.length > 0) {
+                    instructions += `\n\nKnowledge Base:\n${aiConfig.faqs.map(f => `- ${f.question}: ${f.answer}`).join('\n')}`;
+                }
+
+                if (wsTarget && wsTarget.readyState === WebSocket.OPEN) {
+                    wsTarget.send(JSON.stringify({
+                        type: 'session.update',
+                        session: { instructions, voice: aiConfig.voiceId || voiceConfig.openai.voice }
+                    }));
+                }
+                return instructions;
+            }
+        } catch (e) {
+            logger.error('Error updating prompt', e);
+        }
+        return voiceConfig.system.defaultInstructions;
+    }
 }
 
 /**
@@ -432,7 +500,7 @@ async function saveTranscriptMessage(tenantId, callSessionId, role, content) {
             }
         });
     } catch (e) {
-        console.error('[VoiceService] Error saving transcript message:', e);
+        logger.error('Error saving transcript message', e);
     }
 }
 
@@ -460,7 +528,7 @@ async function completeCallSession(callSessionId, transcriptParts, startTime) {
             }
         });
 
-        console.log(`[VoiceService] Call session completed: ${callSessionId} (${duration}s)`);
+        logger.info('Call session completed', { callSessionId, duration });
 
         // Generate summary asynchronously (don't block)
         if (transcript && transcript.length > 50) {
@@ -470,12 +538,12 @@ async function completeCallSession(callSessionId, transcriptParts, startTime) {
                         createMeetingMinute: false // Set to true to auto-create meeting minutes
                     });
                 } catch (e) {
-                    console.error('[VoiceService] Error generating post-call summary:', e);
+                    logger.error('Error generating post-call summary', e);
                 }
             });
         }
     } catch (e) {
-        console.error('[VoiceService] Error completing call session:', e);
+        logger.error('Error completing call session', e);
     }
 }
 
@@ -523,7 +591,7 @@ async function initiateOutboundCall(phoneNumber, tenantId, customData = {}) {
         const webhookUrl = `${appUrl}/api/twilio/webhook/voice/outbound-stream?tenantId=${tenantId}`;
         const statusUrl = `${appUrl}/api/twilio/webhook/status`;
 
-        console.log(`[VoiceService] Initiating outbound call to ${phoneNumber} from ${fromNumber}`);
+        logger.info('Initiating outbound call', { phoneNumber, fromNumber });
 
         // Create the call
         const call = await client.calls.create({
@@ -536,7 +604,7 @@ async function initiateOutboundCall(phoneNumber, tenantId, customData = {}) {
             statusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed']
         });
 
-        console.log(`[VoiceService] Outbound call created: ${call.sid}`);
+        logger.info('Outbound call created', { callSid: call.sid });
 
         // Create call session record
         const session = await prisma.callSession.create({
@@ -558,7 +626,7 @@ async function initiateOutboundCall(phoneNumber, tenantId, customData = {}) {
             message: 'Call initiated successfully'
         };
     } catch (error) {
-        console.error('[VoiceService] Outbound call error:', error);
+        logger.error('Outbound call error', error);
         return {
             success: false,
             error: 'call_failed',

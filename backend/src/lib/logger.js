@@ -1,60 +1,55 @@
-const winston = require('winston');
+// backend/src/lib/logger.js
+/**
+ * Structured Logger for Voice AI Platform
+ * Outputs logs in JSON format for easy parsing and monitoring (e.g. CloudWatch, Datadog)
+ */
 
-const levels = {
-    error: 0,
-    warn: 1,
-    info: 2,
-    http: 3,
-    debug: 4,
+const LOG_LEVELS = {
+    INFO: 'INFO',
+    WARN: 'WARN',
+    ERROR: 'ERROR',
+    DEBUG: 'DEBUG'
 };
 
-const level = () => {
-    const env = process.env.NODE_ENV || 'development';
-    return env === 'development' ? 'debug' : 'warn';
-};
+class Logger {
+    constructor(context = 'App') {
+        this.context = context;
+    }
 
-const colors = {
-    error: 'red',
-    warn: 'yellow',
-    info: 'green',
-    http: 'magenta',
-    debug: 'white',
-};
+    _log(level, message, meta = {}) {
+        const timestamp = new Date().toISOString();
+        const logEntry = {
+            timestamp,
+            level,
+            context: this.context,
+            message,
+            ...meta
+        };
+        console.log(JSON.stringify(logEntry));
+    }
 
-winston.addColors(colors);
+    info(message, meta = {}) {
+        this._log(LOG_LEVELS.INFO, message, meta);
+    }
 
-const format = winston.format.combine(
-    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),
-    winston.format.colorize({ all: true }),
-    winston.format.printf(
-        (info) => `${info.timestamp} ${info.level}: ${info.message}`,
-    ),
-);
+    warn(message, meta = {}) {
+        this._log(LOG_LEVELS.WARN, message, meta);
+    }
 
-const googleCloudFormat = winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.json()
-);
+    error(message, error = null, meta = {}) {
+        const errorMeta = error ? {
+            errorName: error.name,
+            errorMessage: error.message,
+            stack: error.stack
+        } : {};
+        this._log(LOG_LEVELS.ERROR, message, { ...meta, ...errorMeta });
+    }
 
-const transports = [
-    new winston.transports.Console({
-        format: process.env.NODE_ENV === 'production' ? googleCloudFormat : format,
-    }),
-    new winston.transports.File({
-        filename: 'logs/error.log',
-        level: 'error',
-        format: winston.format.json(),
-    }),
-    new winston.transports.File({
-        filename: 'logs/all.log',
-        format: winston.format.json(),
-    }),
-];
+    debug(message, meta = {}) {
+        if (process.env.NODE_ENV !== 'production' || process.env.LOG_LEVEL === 'DEBUG') {
+            this._log(LOG_LEVELS.DEBUG, message, meta);
+        }
+    }
+}
 
-const logger = winston.createLogger({
-    level: level(),
-    levels,
-    transports,
-});
-
-module.exports = logger;
+module.exports = (context) => new Logger(context);
