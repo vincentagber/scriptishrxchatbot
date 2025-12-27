@@ -30,7 +30,7 @@ const generateTokens = (user) => {
             tenantId: user.tenantId
         },
         JWT_SECRET,
-        { expiresIn: '24h' }  // 24h is better than 15m for dashboard use
+        { expiresIn: '24h' }
     );
 
     const refreshToken = jwt.sign(
@@ -195,7 +195,14 @@ router.post('/login', authLimiter, async (req, res) => {
             include: { tenant: true } // optional: for debugging
         });
 
-        if (!user || !await bcrypt.compare(password, user.password)) {
+        if (!user) {
+            // Timing attack mitigation: Perform a dummy comparison to simulate work
+            await bcrypt.compare(password, '$2b$10$abcdefghijklmnopqrstuv');
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        const isValid = await bcrypt.compare(password, user.password);
+        if (!isValid) {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 

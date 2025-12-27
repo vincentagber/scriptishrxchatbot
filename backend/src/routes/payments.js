@@ -49,8 +49,12 @@ router.post('/subscribe', async (req, res) => {
 
         const result = await paymentService.createCheckoutSession(user, plan);
 
-        // If mock, save DB record immediately
+        // If mock, save DB record immediately (DEV ONLY)
         if (result.mock) {
+            if (process.env.NODE_ENV === 'production') {
+                throw new Error('🔴 Security Error: Mock payments are disabled in Production.');
+            }
+
             await prisma.subscription.upsert({
                 where: { userId: userId },
                 update: {

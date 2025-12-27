@@ -13,6 +13,7 @@ import { useDashboardStats, useVoiceStats } from '@/hooks/useDashboardData';
 import { RecentBookings } from '@/components/dashboard/RecentBookings';
 import { RevenueChart } from '@/components/dashboard/RevenueChart';
 import { ServiceList } from '@/components/dashboard/ServiceList';
+import { GettingStarted } from '@/components/dashboard/GettingStarted';
 import Link from 'next/link';
 
 // --- Variants for Animations ---
@@ -187,6 +188,11 @@ export default function DashboardPage() {
                         {isRefetching ? 'Syncing...' : 'Sync Data'}
                     </Button>
                 </div>
+            </motion.div>
+
+            {/* Onboarding Guide */}
+            <motion.div variants={itemVariants}>
+                <GettingStarted />
             </motion.div>
 
             {/* --- HERO STATS GRID --- */}

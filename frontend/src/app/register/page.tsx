@@ -8,8 +8,6 @@ export default function RegisterPage() {
     const [accountType, setAccountType] = useState<'ORGANIZATION' | 'INDIVIDUAL'>('ORGANIZATION');
     const [name, setName] = useState('');
     const [companyName, setCompanyName] = useState('');
-    const [companyLocation, setCompanyLocation] = useState('');
-    const [timezone, setTimezone] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -33,8 +31,6 @@ export default function RegisterPage() {
                 password,
                 accountType,
                 companyName: accountType === 'ORGANIZATION' ? companyName : undefined,
-                location: companyLocation,
-                timezone
             };
 
             const res = await fetch(`${apiUrl}/api/auth/register`, {
@@ -132,28 +128,7 @@ export default function RegisterPage() {
                             />
                         </div>
                     )}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">Location</label>
-                            <input
-                                type="text"
-                                value={companyLocation}
-                                onChange={(e) => setCompanyLocation(e.target.value)}
-                                className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-all duration-200 text-gray-800 placeholder-gray-400"
-                                placeholder="City, Country"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">Timezone</label>
-                            <input
-                                type="text"
-                                value={timezone}
-                                onChange={(e) => setTimezone(e.target.value)}
-                                className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-all duration-200 text-gray-800 placeholder-gray-400"
-                                placeholder="UTC"
-                            />
-                        </div>
-                    </div>
+
                     <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
                         <input

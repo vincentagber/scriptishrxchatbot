@@ -4,7 +4,10 @@ const stripe = process.env.STRIPE_SECRET_KEY ? require('stripe')(process.env.STR
 class PaymentService {
     constructor() {
         if (!stripe) {
-            console.warn('⚠️ PaymentService: STRIPE_SECRET_KEY missing. Payments unavailable.');
+            if (process.env.NODE_ENV === 'production') {
+                throw new Error('🔴 CRITICAL: STRIPE_SECRET_KEY missing in Production. Payment processing disabled.');
+            }
+            console.warn('⚠️ PaymentService: STRIPE_SECRET_KEY missing. Payments unavailable (Dev Mode).');
         }
     }
 
@@ -70,6 +73,13 @@ class PaymentService {
 
     async handleCheckoutCompleted(session) {
         const { userId, plan } = session.metadata;
+
+        // RECEIPT VALIDATION: Ensure payment explicitly succeeded
+        if (session.payment_status !== 'paid') {
+            console.warn(`⚠️ Checkout completed but payment status is '${session.payment_status}'. Subscription NOT activated.`);
+            return;
+        }
+
         // userId might be null if created outside app, handle safely if needed
         if (!userId) return;
 
@@ -92,7 +102,7 @@ class PaymentService {
                 endDate: new Date(new Date().setMonth(new Date().getMonth() + 1))
             }
         });
-        console.log(`✅ Subscription Activated for User ${userId}`);
+        console.log(`✅ Receipt Validated & Subscription Activated for User ${userId}`);
     }
 
     // Stub implementations for others

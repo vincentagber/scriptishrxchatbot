@@ -25,9 +25,15 @@ export default function Home() {
 
   return (
     <main className="min-h-screen relative overflow-hidden bg-white">
-      {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 px-4 md:px-6 py-4 transition-all duration-300 backdrop-blur-md bg-white/80 border-b border-slate-100">
-        <div className="container mx-auto flex justify-between items-center">
+      {/* Ambient Background - World Class Visuals */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] bg-blue-500/10 rounded-full blur-[120px] opacity-60 animate-pulse" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[50vw] h-[50vw] bg-violet-500/10 rounded-full blur-[120px] opacity-60 animate-pulse" style={{ animationDelay: '2s' }} />
+      </div>
+
+      {/* Navigation - Glassmorphism 2.0 */}
+      <nav className="fixed top-0 w-full z-50 px-4 md:px-6 py-4 transition-all duration-300 backdrop-blur-xl bg-white/70 border-b border-white/50 shadow-sm supports-[backdrop-filter]:bg-white/60">
+        <div className="container mx-auto flex justify-between items-center relative z-10">
           <div className="flex items-center gap-2 relative z-50">
             <img src="/logo.jpg" alt="ScriptishRx Logo" className="h-16 w-auto object-contain" />
           </div>
@@ -37,6 +43,7 @@ export default function Home() {
             <a href="#features" className="hover:text-primary-start transition-colors">Platform</a>
             <a href="#solutions" className="hover:text-primary-start transition-colors">Solutions</a>
             <a href="#pricing" className="hover:text-primary-start transition-colors">Pricing</a>
+            <Link href="/legal" className="hover:text-primary-start transition-colors">Legal</Link>
           </div>
 
           <div className="hidden md:flex gap-4">
@@ -66,6 +73,7 @@ export default function Home() {
             <a href="#features" onClick={() => setMobileMenuOpen(false)}>Platform</a>
             <a href="#solutions" onClick={() => setMobileMenuOpen(false)}>Solutions</a>
             <a href="#pricing" onClick={() => setMobileMenuOpen(false)}>Pricing</a>
+            <Link href="/legal" onClick={() => setMobileMenuOpen(false)}>Legal</Link>
             <a href="#contact" onClick={() => setMobileMenuOpen(false)}>Contact</a>
           </div>
 

@@ -5,7 +5,7 @@ const authenticateToken = (req, res, next) => {
   try {
     // Support both "Authorization" and "authorization" headers
     const authHeader = req.headers['authorization'] || req.headers['Authorization'];
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({
         success: false,
@@ -17,12 +17,12 @@ const authenticateToken = (req, res, next) => {
     const token = authHeader.split(' ')[1];
 
     // Verify token synchronously (cleaner & safer)
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
 
     // Attach user info to request — this is used in your routes!
     req.user = decoded;
 
-    // Optional: log for debugging (remove in production if you want)
+
     // console.log('Authenticated user:', decoded.id || decoded.sub, 'Tenant:', decoded.tenantId);
 
     next();
