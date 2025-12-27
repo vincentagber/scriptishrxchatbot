@@ -46,7 +46,7 @@ export const Navbar = () => {
 
             {/* Mobile Menu Overlay & Drawer */}
             <div className={cn(
-                "fixed inset-0 z-[60] md:hidden transition-all duration-300",
+                "fixed inset-0 z-[9999] md:hidden transition-all duration-300",
                 mobileMenuOpen ? "visible" : "invisible delay-300"
             )}>
                 {/* Backdrop */}
@@ -60,11 +60,11 @@ export const Navbar = () => {
 
                 {/* Drawer */}
                 <div className={cn(
-                    "absolute right-0 top-0 h-full w-[85vw] max-w-xs bg-white shadow-2xl transition-transform duration-300 ease-out flex flex-col",
+                    "absolute right-0 top-0 h-[100dvh] w-[85vw] max-w-xs bg-white shadow-2xl transition-transform duration-300 ease-out flex flex-col",
                     mobileMenuOpen ? "translate-x-0" : "translate-x-full"
                 )}>
                     {/* Drawer Header (User Profile Placeholder) */}
-                    <div className="flex flex-col gap-4 p-6 bg-slate-50 border-b border-slate-100">
+                    <div className="flex-none flex flex-col gap-4 p-6 bg-slate-50 border-b border-slate-100">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-500">
@@ -85,7 +85,7 @@ export const Navbar = () => {
                     </div>
 
                     {/* Drawer Content */}
-                    <div className="flex-1 overflow-y-auto">
+                    <div className="flex-1 overflow-y-auto min-h-0">
                         {/* Auth CTA Section */}
                         <div className="p-6 border-b border-slate-100 space-y-3">
                             <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
@@ -126,7 +126,7 @@ export const Navbar = () => {
                     </div>
 
                     {/* Drawer Footer */}
-                    <div className="p-6 border-t border-slate-100 bg-slate-50">
+                    <div className="flex-none p-6 border-t border-slate-100 bg-slate-50">
                         <div className="flex items-center gap-2 text-sm text-slate-500 font-medium cursor-pointer hover:text-slate-900">
                             <span className="w-5 h-5 rounded-full border border-slate-300 flex items-center justify-center text-[10px]">🌐</span>
                             <span>English</span>
