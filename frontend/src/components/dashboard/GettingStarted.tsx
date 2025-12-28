@@ -17,9 +17,7 @@ interface Step {
 export function GettingStarted() {
     const [isVisible, setIsVisible] = useState(true);
     const [steps, setSteps] = useState<Step[]>([
-        { id: 'profile', label: 'Complete your profile', href: '/profile', completed: false },
         { id: 'voice', label: 'Test the AI Voice Agent', href: '/dashboard/voice', completed: false },
-        { id: 'invite', label: 'Invite a team member', href: '/invite', completed: false },
     ]);
 
 
