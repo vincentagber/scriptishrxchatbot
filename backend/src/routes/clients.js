@@ -61,6 +61,7 @@ router.get('/stats',
         try {
             const tenantId = req.scopedTenantId;
 
+            // 1. Basic Counts
             const totalClients = await prisma.client.count({
                 where: { tenantId }
             });
@@ -74,11 +75,58 @@ router.get('/stats',
                 }
             });
 
+            // 2. Fetch Bookings for Revenue & Top Services calculation
+            const bookings = await prisma.booking.findMany({
+                where: { tenantId },
+                orderBy: { date: 'asc' }
+            });
+
+            // 3. Top Services (Group by Purpose)
+            const serviceMap = {};
+            bookings.forEach(b => {
+                const purpose = b.purpose || 'General';
+                if (!serviceMap[purpose]) serviceMap[purpose] = 0;
+                serviceMap[purpose]++;
+            });
+            const topServices = Object.keys(serviceMap).map(name => ({
+                name,
+                count: serviceMap[name]
+            })).sort((a, b) => b.count - a.count).slice(0, 5);
+
+            // 4. Revenue Chart Data
+            const dailyRevenueMap = {};
+            bookings.forEach(b => {
+                const day = new Date(b.date).toLocaleDateString('en-US', { weekday: 'short' });
+                // Simple price logic (mirroring insights.js for consistency)
+                const p = (b.purpose || '').toLowerCase();
+                let cost = 29.99;
+                if (p.includes('wellness') || p.includes('lounge')) cost = 49.99;
+                else if (p.includes('luggage')) cost = 14.99;
+                else if (p.includes('work') || p.includes('desk')) cost = 24.99;
+
+                // Revenue
+                if (!dailyRevenueMap[day]) dailyRevenueMap[day] = { income: 0, expense: 0 };
+                dailyRevenueMap[day].income += cost;
+                // Expenses (mock logic: 40% of income)
+                dailyRevenueMap[day].expense += (cost * 0.4);
+            });
+
+            // Ensure all days are present for the chart
+            const daysOrder = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+            const chartData = daysOrder.map(name => ({
+                name,
+                income: Math.round(dailyRevenueMap[name]?.income || 0),
+                expense: Math.round(dailyRevenueMap[name]?.expense || 0)
+            }));
+
+
             res.json({
                 success: true,
                 stats: {
                     total: totalClients,
-                    recent: recentClients
+                    recent: recentClients,
+                    topServices,
+                    chartData
                 }
             });
         } catch (error) {

@@ -61,6 +61,7 @@ const voiceRouter = require('./routes/voice');
 const webhooksRouter = require('./routes/webhooks');
 const marketingRouter = require('./routes/marketing');
 const organizationRouter = require('./routes/organization');
+const servicesRouter = require('./routes/services');
 
 // Load AI Chat routes (production: must exist)
 let chatAIRouter = null;
@@ -83,14 +84,6 @@ try {
     legacyChatRouter = null;
 }
 
-// VoiceCake routes removed
-const voiceCakeRouter = null;
-
-// ==================== HELPER FUNCTIONS ====================
-
-// NOTE: Demo/fallback/mock routers removed for production readiness.
-
-
 // ==================== REGISTER ALL ROUTES ====================
 
 // Authentication & Users
@@ -108,7 +101,7 @@ if (legacyChatRouter) {
     console.log('→ /api/legacy-chat registered (Legacy)');
 }
 
-// Other routes
+
 // Other routes
 app.use('/api/clients', clientsRouter);
 app.use('/api/bookings', bookingsRouter);
@@ -122,6 +115,7 @@ app.use('/api/upload', uploadRouter);
 app.use('/api/voice', voiceRouter);
 app.use('/api/marketing', marketingRouter);
 app.use('/api/organization', organizationRouter);
+app.use('/api/services', servicesRouter);
 
 // Twilio Webhooks
 const twilioRouter = require('./routes/twilio');

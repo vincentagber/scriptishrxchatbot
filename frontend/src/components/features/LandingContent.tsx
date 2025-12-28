@@ -139,7 +139,7 @@ export const FeatureShowcase = () => (
             <div className="flex flex-col md:flex-row items-center gap-12 md:gap-16">
                 <div className="md:w-1/2 relative flex justify-center w-full">
                     <div className="w-[280px] h-[560px] md:w-[300px] md:h-[600px] bg-white rounded-[40px] shadow-2xl border-8 border-slate-900 p-4 relative z-10 transition-transform hover:scale-105 duration-500">
-                        {/* Mock UI */}
+                        {/* Analytics Visualization */}
                         <div className="w-full h-full bg-slate-50 rounded-[32px] overflow-hidden flex flex-col p-4 space-y-4">
                             <div className="h-40 bg-purple-100 rounded-xl w-full flex items-center justify-center">
                                 <BarChart3 className="w-12 h-12 text-purple-600" />
@@ -188,7 +188,7 @@ export const FeatureShowcase = () => (
             <div className="flex flex-col md:flex-row-reverse items-center gap-12 md:gap-16">
                 <div className="md:w-1/2 relative flex justify-center w-full">
                     <div className="w-[280px] h-[560px] md:w-[300px] md:h-[600px] bg-white rounded-[40px] shadow-2xl border-8 border-slate-900 p-4 relative z-10 transition-transform hover:scale-105 duration-500">
-                        {/* Mock UI */}
+                        {/* Notification Visualization */}
                         <div className="w-full h-full bg-slate-50 rounded-[32px] overflow-hidden flex flex-col relative">
                             <div className="absolute top-10 left-4 right-4 bg-white p-4 rounded-xl shadow-lg flex items-center gap-3 animate-bounce">
                                 <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
@@ -253,7 +253,7 @@ export const StatsBanner = () => {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const response = await fetch('http://localhost:5000/api/marketing/stats');
+                const response = await fetch('/api/marketing/stats');
                 if (response.ok) {
                     const data = await response.json();
                     if (data.success && data.stats) {
@@ -456,7 +456,7 @@ export const Newsletter = () => {
         if (!email) return;
         setStatus('loading');
         try {
-            const res = await fetch('http://localhost:5000/api/marketing/newsletter', {
+            const res = await fetch('/api/marketing/newsletter', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email })

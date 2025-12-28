@@ -8,25 +8,7 @@ export function RevenueChart() {
     const [range, setRange] = useState('1W');
 
     // 1. Static Mock Data (Fallback / Demo)
-    const demoData = [
-        { name: 'Mon', income: 4000, expense: 2400 },
-        { name: 'Tue', income: 3000, expense: 1398 },
-        { name: 'Wed', income: 2000, expense: 9800 },
-        { name: 'Thu', income: 2780, expense: 3908 },
-        { name: 'Fri', income: 1890, expense: 4800 },
-        { name: 'Sat', income: 2390, expense: 3800 },
-        { name: 'Sun', income: 3490, expense: 4300 },
-    ];
-
-    // 2. Use real data if available and not empty, otherwise demo
-    let data = demoData;
-    if (stats?.chartData && stats.chartData.length > 0) {
-        // Simple check to ensure we have non-zero data to show "activity"
-        const hasActivity = stats.chartData.some((d: any) => d.income > 0);
-        if (hasActivity) {
-            data = stats.chartData;
-        }
-    }
+    const data = stats?.chartData || [];
 
     return (
         <GlassCard className="lg:col-span-2 relative overflow-hidden group">
@@ -55,8 +37,8 @@ export function RevenueChart() {
                                 key={r}
                                 onClick={() => setRange(r)}
                                 className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${range === r
-                                        ? 'bg-white text-slate-900 shadow-sm'
-                                        : 'text-slate-500 hover:text-slate-700'
+                                    ? 'bg-white text-slate-900 shadow-sm'
+                                    : 'text-slate-500 hover:text-slate-700'
                                     }`}
                             >
                                 {r}
@@ -70,6 +52,8 @@ export function RevenueChart() {
             <div className="h-[300px] w-full">
                 {isLoading ? (
                     <div className="w-full h-full flex items-center justify-center text-slate-400">Loading chart...</div>
+                ) : data.length === 0 ? (
+                    <div className="w-full h-full flex items-center justify-center text-slate-400">No revenue data available</div>
                 ) : (
                     <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={data} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>

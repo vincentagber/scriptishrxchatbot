@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
     Users, Clock, ShoppingBag, DollarSign, Search, Filter,
@@ -12,28 +12,43 @@ import { Button } from '@/components/ui/Button';
 import { useDashboardStats } from '@/hooks/useDashboardData';
 import { cn } from '@/lib/utils';
 
-// --- SERVICE DATA MAPPING ---
-// This ensures we have a nice list even if DB only returns a few or none
-const ALL_SERVICES_MOCK = [
-    { id: '1', name: "General Wellness", category: "Health", icon: Stethoscope, color: "text-purple-600", bg: "bg-purple-100", price: "$150.00", duration: "60 min", status: "Active" },
-    { id: '2', name: "Workspace Usage", category: "Facilities", icon: Wifi, color: "text-blue-600", bg: "bg-blue-100", price: "$25.00/hr", duration: "Flexible", status: "Active" },
-    { id: '3', name: "Luggage Storage", category: "Concierge", icon: Briefcase, color: "text-orange-600", bg: "bg-orange-100", price: "$10.00", duration: "Daily", status: "Active" },
-    { id: '4', name: "Concierge Consult", category: "Support", icon: Coffee, color: "text-emerald-600", bg: "bg-emerald-100", price: "$0.00", duration: "15 min", status: "Active" },
-    { id: '5', name: "Event Hosting", category: "Events", icon: Users, color: "text-rose-600", bg: "bg-rose-100", price: "Custom", duration: "Varies", status: "Inactive" },
-];
-
 export default function ServicesPage() {
     const { data: stats, isLoading } = useDashboardStats();
     const [searchTerm, setSearchTerm] = useState('');
+    const [services, setServices] = useState<any[]>([]);
+    const [isLoadingServices, setIsLoadingServices] = useState(true);
 
-    // Merge real stats counts with our static definition if possible
-    // For now, we'll just use the stats to show "Popularity" if we match names
-    const enrichedServices = ALL_SERVICES_MOCK.map(svc => {
+    // Fetch services from API
+    useEffect(() => {
+        const fetchServices = async () => {
+            try {
+                const res = await fetch('/api/services');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.success && Array.isArray(data.services)) {
+                        setServices(data.services);
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to fetch services", error);
+            } finally {
+                setIsLoadingServices(false);
+            }
+        };
+        fetchServices();
+    }, []);
+
+    const enrichedServices = services.map(svc => {
         const foundStat = stats?.topServices?.find((s: any) => s.name === svc.name);
         return {
             ...svc,
-            bookings: foundStat?.count || Math.floor(Math.random() * 50) + 5, // Fallback random for demo "aliveness"
-            trend: foundStat ? "+12%" : (Math.random() > 0.5 ? "+5%" : "-2%")
+            bookings: foundStat?.count || 0,
+            trend: foundStat ? "+12%" : "stable",
+            // Provide default icon if missing/string (assumes Icon component or mapping needed in real app)
+            // For now, mapping name to icon loosely or defaulting
+            icon: svc.icon || Briefcase,
+            bg: svc.bg || 'bg-slate-100',
+            color: svc.color || 'text-slate-600'
         };
     }).filter(s =>
         s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -63,7 +78,7 @@ export default function ServicesPage() {
                 <GlassCard className="p-6 flex items-center justify-between">
                     <div>
                         <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Total Services</p>
-                        <p className="text-3xl font-extrabold text-slate-900 mt-1">{ALL_SERVICES_MOCK.length}</p>
+                        <p className="text-3xl font-extrabold text-slate-900 mt-1">{services.length}</p>
                     </div>
                     <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl">
                         <Briefcase className="w-6 h-6" />
@@ -73,7 +88,7 @@ export default function ServicesPage() {
                     <div>
                         <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Active Offerings</p>
                         <p className="text-3xl font-extrabold text-slate-900 mt-1">
-                            {ALL_SERVICES_MOCK.filter(s => s.status === 'Active').length}
+                            {services.filter(s => s.status === 'Active').length}
                         </p>
                     </div>
                     <div className="p-4 bg-emerald-50 text-emerald-600 rounded-2xl">
@@ -117,7 +132,7 @@ export default function ServicesPage() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                        {isLoading ? (
+                        {isLoading || isLoadingServices ? (
                             <tr><td colSpan={6} className="p-8 text-center text-slate-400">Loading directory...</td></tr>
                         ) : enrichedServices.length === 0 ? (
                             <tr><td colSpan={6} className="p-8 text-center text-slate-400">No services found.</td></tr>

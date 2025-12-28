@@ -17,15 +17,12 @@ interface Step {
 export function GettingStarted() {
     const [isVisible, setIsVisible] = useState(true);
     const [steps, setSteps] = useState<Step[]>([
-        { id: 'profile', label: 'Complete your profile', href: '/settings', completed: false },
+        { id: 'profile', label: 'Complete your profile', href: '/profile', completed: false },
         { id: 'voice', label: 'Test the AI Voice Agent', href: '/dashboard/voice', completed: false },
-        { id: 'invite', label: 'Invite a team member', href: '/settings/team', completed: false },
+        { id: 'invite', label: 'Invite a team member', href: '/invite', completed: false },
     ]);
 
-    // Mock completion toggle for demo (in real app, check user data)
-    const toggleStep = (id: string) => {
-        setSteps(steps.map(s => s.id === id ? { ...s, completed: !s.completed } : s));
-    };
+
 
     const progress = Math.round((steps.filter(s => s.completed).length / steps.length) * 100);
 
@@ -66,7 +63,7 @@ export function GettingStarted() {
                                         "flex items-center gap-4 p-4 rounded-xl transition-all cursor-pointer border border-transparent",
                                         step.completed ? "bg-emerald-500/20 border-emerald-500/30" : "bg-white/5 hover:bg-white/10 border-white/10"
                                     )}
-                                    onClick={() => toggleStep(step.id)}
+
                                 >
                                     {step.completed ? (
                                         <CheckCircle2 className="w-6 h-6 text-emerald-300 flex-shrink-0" />

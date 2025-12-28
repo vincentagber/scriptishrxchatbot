@@ -15,7 +15,6 @@ interface Message {
     role: 'user' | 'assistant';
     content: string;
     timestamp: string;
-    mockMode?: boolean;
     error?: boolean;
 }
 
@@ -29,7 +28,6 @@ export default function ChatInterface({ tenantId: propTenantId, token, isDashboa
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
-    const [isMockMode, setIsMockMode] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
     const [isOnline, setIsOnline] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -58,7 +56,6 @@ export default function ChatInterface({ tenantId: propTenantId, token, isDashboa
             const data = await res.json();
 
             if (data.success) {
-                setIsMockMode(data.mockMode === true);
                 setIsOnline(data.status === 'online');
             }
         } catch (error) {
@@ -127,8 +124,7 @@ export default function ChatInterface({ tenantId: propTenantId, token, isDashboa
                     id: `assistant_${Date.now()}`,
                     role: 'assistant',
                     content: data.response,
-                    timestamp: new Date().toISOString(),
-                    mockMode: data.mockMode
+                    timestamp: new Date().toISOString()
                 };
                 setMessages(prev => [...prev, assistantMsg]);
             } else {
@@ -214,11 +210,6 @@ export default function ChatInterface({ tenantId: propTenantId, token, isDashboa
                 </div>
 
                 <div className="flex items-center gap-2">
-                    {isMockMode && isDashboard && (
-                        <span className="px-2.5 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider rounded-md border border-slate-200 hidden md:inline-block">
-                            Dev Mode
-                        </span>
-                    )}
                     <Button
                         variant="ghost"
                         size="icon"
