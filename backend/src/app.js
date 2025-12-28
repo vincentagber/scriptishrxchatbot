@@ -193,18 +193,35 @@ app.get('/api/health', (req, res) => {
 const publicPath = path.join(__dirname, '../public');
 if (fs.existsSync(publicPath)) {
     console.log(`✓ Serving static files from: ${publicPath}`);
-    app.use(express.static(publicPath));
+    // Fix: Enforce Content-Type for static files to prevent "garbage text" (mime mismatch)
+    app.use(express.static(publicPath, {
+        setHeaders: (res, filePath) => {
+            if (filePath.endsWith('.html')) {
+                res.setHeader('Content-Type', 'text/html');
+                res.removeHeader('Content-Encoding'); // Safety against double-compression
+            }
+        }
+    }));
 
     // SPA Fallback: Serve index.html for any unknown route that isn't /api
     // Note: Using (.*) for wildcard compatibility with newer Express routers
     app.get(/(.*)/, (req, res, next) => {
         if (req.path.startsWith('/api') || req.path.startsWith('/media-stream')) return next();
+
+        // Explicitly set headers for the fallback
+        res.setHeader('Content-Type', 'text/html');
+        res.removeHeader('Content-Encoding');
         res.sendFile(path.join(publicPath, 'index.html'));
     });
 } else {
     console.warn('⚠ No frontend build found in public directory');
     app.get('/', (req, res) => {
         res.status(200).send('ScriptishRx API is running. Frontend build not matched.');
+    });
+    // Fallback if public doesn't exist
+    app.get(/(.*)/, (req, res, next) => {
+        if (req.path.startsWith('/api')) return next();
+        res.status(200).send('ScriptishRx API (No Frontend)');
     });
 }
 

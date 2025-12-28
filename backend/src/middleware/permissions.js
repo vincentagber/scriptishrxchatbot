@@ -187,9 +187,9 @@ async function verifyTenantAccess(req, res, next) {
     try {
         const userId = req.user?.userId || req.user?.id;
         const userTenantId = req.user?.tenantId;
-        const requestedTenantId = req.params.tenantId || req.body.tenantId || req.query.tenantId;
+        const requestedTenantId = req.params?.tenantId || req.body?.tenantId || req.query?.tenantId;
 
-        console.log('verifyTenantAccess - userId:', userId, 'userTenantId:', userTenantId, 'requestedTenantId:', requestedTenantId);
+        console.log(`verifyTenantAccess - userId: ${userId}, userTenantId: ${userTenantId}, requestedTenantId: ${requestedTenantId}`);
 
         // Super admin can access any tenant
         if (req.user?.role === 'SUPER_ADMIN') {
