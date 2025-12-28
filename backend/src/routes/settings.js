@@ -16,6 +16,13 @@ router.get('/',
         try {
             const userId = req.user?.userId || req.user?.id;
             const tenantId = req.scopedTenantId;
+            if (!tenantId) {
+                console.error('[Settings] Missing tenantId');
+                return res.status(400).json({
+                    success: false,
+                    error: 'Tenant ID missing'
+                });
+            }
 
             console.log(`[Settings] Fetching for UserID: ${userId}, TenantID: ${tenantId}`);
 

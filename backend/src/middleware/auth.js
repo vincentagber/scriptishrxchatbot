@@ -19,6 +19,9 @@ const authenticateToken = (req, res, next) => {
     // Verify token synchronously (cleaner & safer)
     const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
 
+    // Debug: log decoded token to verify tenantId presence
+    console.log('Decoded token:', decoded);
+
     // Attach user info to request — this is used in your routes!
     req.user = decoded;
 

@@ -189,19 +189,24 @@ async function verifyTenantAccess(req, res, next) {
         const userTenantId = req.user?.tenantId;
         const requestedTenantId = req.params.tenantId || req.body.tenantId || req.query.tenantId;
 
+        console.log('verifyTenantAccess - userId:', userId, 'userTenantId:', userTenantId, 'requestedTenantId:', requestedTenantId);
+
         // Super admin can access any tenant
         if (req.user?.role === 'SUPER_ADMIN') {
+            console.log('Super admin bypass');
             return next();
         }
 
         // No tenant requested - use user's tenant
         if (!requestedTenantId) {
-            req.scopedTenantId = userTenantId;
+            req.scopedTenantId = userTenantId; // Enforce tenant scoping
+            console.log('No requested tenant, using userTenantId:', userTenantId);
             return next();
         }
 
         // Verify user belongs to requested tenant
         if (requestedTenantId !== userTenantId) {
+            console.warn('Tenant mismatch in verifyTenantAccess', { requestedTenantId, userTenantId });
             return res.status(403).json({
                 success: false,
                 error: 'Access denied to this organization',
@@ -210,6 +215,7 @@ async function verifyTenantAccess(req, res, next) {
         }
 
         req.scopedTenantId = userTenantId;
+        console.log('Tenant verification passed, scopedTenantId set to', userTenantId);
         next();
     } catch (error) {
         console.error('Tenant verification error:', error);
