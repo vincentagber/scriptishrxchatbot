@@ -56,4 +56,70 @@ router.get('/subscribers/summary', authenticateToken, requireRole(['SUPER_ADMIN'
     }
 });
 
+// GET /api/admin/subscribers
+// Access: SUPER_ADMIN ONLY
+// Query: page, limit, search, status, type
+router.get('/subscribers', authenticateToken, requireRole(['SUPER_ADMIN']), async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const search = req.query.search || '';
+        const status = req.query.status;
+        const type = req.query.type;
+
+        const skip = (page - 1) * limit;
+
+        // Build filter object
+        const where = {};
+
+        if (search) {
+            where.OR = [
+                { user: { name: { contains: search, mode: 'insensitive' } } },
+                { user: { email: { contains: search, mode: 'insensitive' } } }
+                // Add tenant name search if relation exists locally in prisma schema, assuming user relation is standard
+            ];
+        }
+
+        if (status && status !== 'ALL') where.status = status;
+        if (type && type !== 'ALL') where.type = type;
+
+        // Fetch Data
+        const [subscribers, total] = await Promise.all([
+            prisma.subscription.findMany({
+                where,
+                take: limit,
+                skip: skip,
+                orderBy: { createdAt: 'desc' },
+                include: {
+                    user: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                            role: true,
+                            tenant: { select: { name: true } }
+                        }
+                    }
+                }
+            }),
+            prisma.subscription.count({ where })
+        ]);
+
+        res.json({
+            success: true,
+            data: subscribers,
+            pagination: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit)
+            }
+        });
+
+    } catch (error) {
+        logger.error('Admin Subscribers List Error:', error);
+        res.status(500).json({ success: false, error: 'Failed to fetch subscribers' });
+    }
+});
+
 module.exports = router;

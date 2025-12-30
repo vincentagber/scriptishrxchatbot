@@ -12,6 +12,7 @@ interface UserPayload {
     name: string;
     email: string;
     avatarUrl?: string;
+    role?: string;
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -30,10 +31,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         (async () => {
             try {
                 const token = localStorage.getItem('token');
-                const storedName = localStorage.getItem('userName'); // Attempt to get from cache first
+                const storedName = localStorage.getItem('userName');
+                const storedRole = localStorage.getItem('userRole');
 
                 if (storedName) {
-                    setUser({ name: storedName, email: '', avatarUrl: '' });
+                    setUser({ name: storedName, email: '', avatarUrl: '', role: storedRole || '' });
                 }
 
                 if (!token) {
@@ -48,6 +50,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     setUser(data.user);
                     // Cache it for next time
                     if (data.user.name) localStorage.setItem('userName', data.user.name);
+                    if (data.user.role) localStorage.setItem('userRole', data.user.role);
                 }
             } catch (err) {
                 console.error('User fetch failed:', err);
@@ -193,6 +196,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     const logout = () => {
         localStorage.removeItem('token');
+        localStorage.removeItem('userName');
+        localStorage.removeItem('userRole');
         window.location.href = '/login';
     };
 
@@ -244,6 +249,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         <NavItem href="/dashboard/chat" label="Chatbot" icon={<MessageSquare />} active={pathname === '/dashboard/chat'} />
                         <NavItem href="/dashboard/workflows" label="Workflows" icon={<Zap />} active={pathname === '/dashboard/workflows'} />
                     </Section>
+
+                    {user?.role === 'SUPER_ADMIN' && (
+                        <Section title="ADMINISTRATION">
+                            <NavItem href="/dashboard/admin" label="Subscriber Management" icon={<Zap className="text-amber-300" />} active={pathname?.startsWith('/dashboard/admin')} />
+                        </Section>
+                    )}
 
                     <Section title="GENERAL">
                         <NavItem href="/dashboard/settings" label="Settings" icon={<Settings />} active={pathname === '/dashboard/settings'} />
