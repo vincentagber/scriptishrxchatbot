@@ -9,8 +9,10 @@ const init = (httpServer) => {
             origin: [
                 "http://localhost:3000",
                 "http://localhost:5000",
+                "https://scriptishrx.net",
+                "https://www.scriptishrx.net",
                 process.env.FRONTEND_URL
-            ],
+            ].filter(Boolean),
             methods: ["GET", "POST"]
         }
     });
