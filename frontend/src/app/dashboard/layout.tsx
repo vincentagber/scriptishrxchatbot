@@ -13,6 +13,10 @@ interface UserPayload {
     email: string;
     avatarUrl?: string;
     role?: string;
+    subscription?: {
+        plan: string;
+        status: string;
+    };
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -268,24 +272,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     </Section>
                 </nav>
 
-                {/* Upgrade Pro Card */}
-                <div className="p-6">
-                    <div className="bg-gradient-to-br from-[#059669] to-[#10b981] rounded-2xl p-5 text-center shadow-lg transform transition-all hover:scale-[1.02] border border-white/10">
-                        <div className="mb-3 flex justify-center">
-                            <span className="text-2xl filter drop-shadow-md">👑</span>
+                {/* Upgrade Pro Card - Hidden for Advanced, Trial, and Basic (Launch Special) */}
+                {user?.subscription?.plan !== 'Advanced' && user?.subscription?.plan !== 'Trial' && user?.subscription?.plan !== 'Basic' && (
+                    <div className="p-6">
+                        <div className="bg-gradient-to-br from-[#059669] to-[#10b981] rounded-2xl p-5 text-center shadow-lg transform transition-all hover:scale-[1.02] border border-white/10">
+                            <div className="mb-3 flex justify-center">
+                                <span className="text-2xl filter drop-shadow-md">👑</span>
+                            </div>
+                            <h3 className="text-white font-bold text-lg mb-1">Upgrade Pro!</h3>
+                            <p className="text-white/90 text-xs mb-4 leading-relaxed px-1">
+                                Higher productivity with better organization
+                            </p>
+                            <Link href="/dashboard/settings/subscription" className="block w-full">
+                                <button className="w-full bg-white text-[#059669] py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-sm hover:shadow-md transition-all active:scale-95">
+                                    <Zap className="w-4 h-4 fill-current" />
+                                    Upgrade
+                                </button>
+                            </Link>
                         </div>
-                        <h3 className="text-white font-bold text-lg mb-1">Upgrade Pro!</h3>
-                        <p className="text-white/90 text-xs mb-4 leading-relaxed px-1">
-                            Higher productivity with better organization
-                        </p>
-                        <Link href="/dashboard/settings/subscription" className="block w-full">
-                            <button className="w-full bg-white text-[#059669] py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-sm hover:shadow-md transition-all active:scale-95">
-                                <Zap className="w-4 h-4 fill-current" />
-                                Upgrade
-                            </button>
-                        </Link>
                     </div>
-                </div>
+                )}
             </aside>
 
             {/* === MAIN === */}

@@ -678,7 +678,7 @@ export default function SettingsPage() {
     // --- Integration Logic ---
 
     const handleConnectClick = (key: string) => {
-        if (settings.plan !== 'Advanced' && settings.plan !== 'Trial') return showToast("Upgrade to Advanced to use integrations.", 'error');
+        if (settings.plan !== 'Advanced' && settings.plan !== 'Trial' && settings.plan !== 'Basic') return showToast("Upgrade to Advanced to use integrations.", 'error');
         // setConfigModal({ isOpen: true, type: key });
         // Simulating immediate connect attempt for now, config modal logic omitted for brevity in this specific fix content replacement
         handleConfigSave(key, {});

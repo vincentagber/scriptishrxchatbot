@@ -313,11 +313,15 @@ async function getSubscriptionStatus(req, res) {
  * Helper: Get available features for a plan
  */
 function getFeaturesForPlan(plan, isTrialActive) {
+    // TEMPORARY: Unrestrict ALL plans for 14-day launch period
+    // Granting full feature access to Trial and Basic users.
+    const fullFeatures = ['ai_chat', 'voice_agent', 'advanced_analytics', 'custom_branding', 'api_integrations', 'white_label', 'unlimited_clients', 'workflow_automation'];
+
     const features = {
-        'Trial': ['ai_chat', 'voice_agent', 'advanced_analytics', 'custom_branding', 'api_integrations', 'unlimited_clients', 'workflow_automation'],
-        'Basic': ['ai_chat'],
-        'Intermediate': ['ai_chat', 'voice_agent', 'custom_branding', 'unlimited_clients'],
-        'Advanced': ['ai_chat', 'voice_agent', 'advanced_analytics', 'custom_branding', 'api_integrations', 'white_label', 'unlimited_clients', 'workflow_automation']
+        'Trial': fullFeatures,
+        'Basic': fullFeatures, // Upgraded for launch
+        'Intermediate': fullFeatures, // Upgraded
+        'Advanced': fullFeatures
     };
 
     return features[plan] || [];
