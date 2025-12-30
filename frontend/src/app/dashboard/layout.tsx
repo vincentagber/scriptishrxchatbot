@@ -207,26 +207,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {/* === SIDEBAR === */}
             <aside
                 ref={sidebarRef}
-                className={`fixed lg:static top-0 left-0 h-full lg:h-auto w-64 bg-white border-r border-gray-100 z-50
-                transition-transform duration-300 flex flex-col
+                className={`fixed lg:static top-0 left-0 h-full lg:h-auto w-64 bg-blue-600 z-50
+                transition-transform duration-300 flex flex-col shadow-xl
                 ${showMobileMenu ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
             >
                 {/* Brand */}
-                <div className="h-24 flex items-center px-8">
+                <div className="h-24 flex items-center px-8 border-b border-blue-500/30">
                     <div className="flex items-center gap-3">
-                        <img src="/logo.jpg" alt="ScriptishRx" className="h-10 w-auto" />
+                        <div className="bg-white p-2 rounded-lg shadow-md">
+                            <img src="/logo.jpg" alt="ScriptishRx" className="h-6 w-auto" />
+                        </div>
+                        <span className="font-bold text-xl text-white tracking-tight">ScriptishRx</span>
                     </div>
 
                     <button
                         onClick={() => setShowMobileMenu(false)}
-                        className="lg:hidden ml-auto text-gray-500"
+                        className="lg:hidden ml-auto text-blue-200 hover:text-white transition-colors"
                     >
                         <X className="h-6 w-6" />
                     </button>
                 </div>
 
                 {/* Navigation */}
-                <nav className="flex-1 px-6 py-4 space-y-8 overflow-y-auto scrollbar-hide">
+                <nav className="flex-1 px-4 py-6 space-y-8 overflow-y-auto scrollbar-hide">
 
                     <Section title="MENU">
                         <NavItem href="/dashboard" label="Dashboard" icon={<LayoutDashboard />} active={pathname === '/dashboard'} />
@@ -246,22 +249,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         <NavItem href="/dashboard/settings" label="Settings" icon={<Settings />} active={pathname === '/dashboard/settings'} />
                         <button
                             onClick={logout}
-                            className="flex items-center px-3 py-2 w-full text-gray-500 hover:text-gray-900 transition-colors group"
+                            className="flex items-center px-4 py-3 w-full text-blue-100 hover:bg-white/10 hover:text-white rounded-xl transition-all group"
                         >
-                            <span className="mr-3 p-1"><LogOut className="w-5 h-5 text-gray-400 group-hover:text-gray-600" /></span>
+                            <span className="mr-3"><LogOut className="w-5 h-5 text-blue-300 group-hover:text-white transition-colors" /></span>
                             <span className="font-medium text-sm">Log out</span>
                         </button>
                     </Section>
                 </nav>
 
-                {/* Upgrade Pro Card - EXACT DESIGN MATCH */}
+                {/* Upgrade Pro Card */}
                 <div className="p-6">
-                    <div className="bg-[#059669] rounded-2xl p-5 text-center shadow-lg transform transition-all hover:scale-[1.02]">
+                    <div className="bg-gradient-to-br from-[#059669] to-[#10b981] rounded-2xl p-5 text-center shadow-lg transform transition-all hover:scale-[1.02] border border-white/10">
                         <div className="mb-3 flex justify-center">
                             <span className="text-2xl filter drop-shadow-md">👑</span>
                         </div>
                         <h3 className="text-white font-bold text-lg mb-1">Upgrade Pro!</h3>
-                        <p className="text-white/80 text-xs mb-4 leading-relaxed px-1">
+                        <p className="text-white/90 text-xs mb-4 leading-relaxed px-1">
                             Higher productivity with better organization
                         </p>
                         <Link href="/dashboard/settings/subscription" className="block w-full">
@@ -441,7 +444,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
     return (
         <div className="mb-6">
-            <p className="px-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">{title}</p>
+            <p className="px-4 text-[10px] font-bold text-blue-200/70 uppercase tracking-widest mb-3">{title}</p>
             <div className="space-y-1">{children}</div>
         </div>
     );
@@ -463,21 +466,21 @@ function NavItem({
     return (
         <Link
             href={href}
-            className={`flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-200 group relative
+            className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 group relative
             ${active
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
+                    ? 'bg-white text-blue-600 shadow-md font-bold'
+                    : 'text-blue-100 hover:bg-white/10 hover:text-white'
                 }`}
         >
             <div className="flex items-center gap-3">
-                <span className={`${active ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'} transition-colors`}>
+                <span className={`${active ? 'text-blue-600' : 'text-blue-300 group-hover:text-white'} transition-colors`}>
                     {icon}
                 </span>
-                <span className="font-medium text-sm">{label}</span>
+                <span className="text-sm">{label}</span>
             </div>
 
             {badge && (
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm ${active ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'}`}>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm ${active ? 'bg-blue-100 text-blue-600' : 'bg-white/20 text-white'}`}>
                     {badge}
                 </span>
             )}

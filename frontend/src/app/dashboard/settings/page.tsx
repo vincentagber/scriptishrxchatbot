@@ -95,7 +95,7 @@ function AuditLogsModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => v
 
 // --- Integration Item ---
 function IntegrationItem({ name, description, connectedKey, integrations, onConnectClick, onDisconnectClick, loading, icon: Icon }: any) {
-    const config = integrations[connectedKey];
+    const config = (integrations && integrations[connectedKey]) || {};
     const isConnected = !!config && (config === true || config.connected === true);
     const isLoading = loading === connectedKey;
 
@@ -505,7 +505,7 @@ export default function SettingsPage() {
                 });
 
                 if (user.tenant?.integrations) {
-                    try { setIntegrations(JSON.parse(user.tenant.integrations)); } catch (e) { }
+                    try { setIntegrations(JSON.parse(user.tenant.integrations) || {}); } catch (e) { setIntegrations({}); }
                 }
 
                 setProfile({
