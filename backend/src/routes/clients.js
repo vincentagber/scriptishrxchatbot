@@ -4,7 +4,9 @@ const router = express.Router();
 const prisma = require('../lib/prisma');
 const { authenticateToken } = require('../middleware/auth');
 const { checkPermission, verifyTenantAccess } = require('../middleware/permissions');
+
 const { checkSubscriptionAccess } = require('../middleware/subscription');
+const { createClientSchema, updateClientSchema } = require('../schemas/validation');
 
 /**
  * GET /api/clients - List all clients for the tenant
@@ -150,14 +152,8 @@ router.post('/',
     async (req, res) => {
         try {
             const tenantId = req.scopedTenantId;
-            const { name, phone, email, notes, source } = req.body;
-
-            if (!name) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Client name is required'
-                });
-            }
+            const validatedData = createClientSchema.parse(req.body);
+            const { name, phone, email, notes, source } = validatedData;
 
             const client = await prisma.client.create({
                 data: {
@@ -241,7 +237,10 @@ router.patch('/:id',
         try {
             const tenantId = req.scopedTenantId;
             const { id } = req.params;
-            const { name, phone, email, notes, source } = req.body;
+
+            // Validate input
+            const validatedData = updateClientSchema.parse(req.body);
+            const { name, phone, email, notes, source } = validatedData;
 
             // Verify client belongs to tenant
             const existingClient = await prisma.client.findFirst({
@@ -273,6 +272,9 @@ router.patch('/:id',
                 message: 'Client updated successfully'
             });
         } catch (error) {
+            if (error.name === 'ZodError') {
+                return res.status(400).json({ success: false, error: error.errors });
+            }
             console.error('Error updating client:', error);
             res.status(500).json({
                 success: false,

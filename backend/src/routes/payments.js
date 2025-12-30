@@ -51,8 +51,10 @@ router.post('/subscribe', async (req, res) => {
 
         // If mock, save DB record immediately (DEV ONLY)
         if (result.mock) {
+            // DOUBLE CHECK: Ensure we never process mock results in production if they somehow slip through
             if (process.env.NODE_ENV === 'production') {
-                throw new Error('🔴 Security Error: Mock payments are disabled in Production.');
+                console.error('CRITICAL: Mock payment attempted in production!');
+                return res.status(403).json({ error: 'Mock payments disabled' });
             }
 
             await prisma.subscription.upsert({

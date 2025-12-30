@@ -65,6 +65,14 @@ const createClientSchema = z.object({
     notes: z.string().optional(),
 });
 
+const updateClientSchema = z.object({
+    name: z.string().min(2).optional(),
+    email: z.string().email().optional(),
+    phone: z.string().optional(),
+    notes: z.string().optional(),
+    source: z.string().optional(),
+});
+
 module.exports = {
     registerSchema,
     loginSchema,
@@ -72,6 +80,7 @@ module.exports = {
     createBookingSchema,
     updateBookingSchema,
     createClientSchema,
+    updateClientSchema,
     RoleEnum,
     StatusEnum,
     PlanEnum

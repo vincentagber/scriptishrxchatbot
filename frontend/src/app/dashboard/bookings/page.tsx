@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, Calendar as CalendarIcon, Clock, Trash2, Edit2, Check, AlertCircle, X, Search } from 'lucide-react';
+import EmptyState from '@/components/EmptyState';
 
 // Toast Component
 function Toast({ message, type, onClose }: { message: string, type: 'success' | 'error', onClose: () => void }) {
@@ -206,42 +207,52 @@ export default function BookingsPage() {
                 </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {bookings.map((booking) => (
-                    <div key={booking.id} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
-                                <CalendarIcon className="w-5 h-5" />
+            {bookings.length === 0 ? (
+                <EmptyState
+                    title="No bookings yet"
+                    description="Get started by scheduling your first appointment with a client."
+                    icon={CalendarIcon}
+                    actionLabel="New Booking"
+                    onAction={() => setShowAddModal(true)}
+                />
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {bookings.map((booking) => (
+                        <div key={booking.id} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                            <div className="flex justify-between items-start mb-4">
+                                <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+                                    <CalendarIcon className="w-5 h-5" />
+                                </div>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => handleEditClick(booking)}
+                                        className="p-1 hover:bg-gray-100 text-gray-400 hover:text-blue-600 rounded"
+                                    >
+                                        <Edit2 className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                        onClick={() => handleDeleteBooking(booking.id)}
+                                        className="p-1 hover:bg-red-50 text-red-400 hover:text-red-600 rounded"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${booking.status === 'Scheduled' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'
+                                        }`}>
+                                        {booking.status}
+                                    </span>
+                                </div>
                             </div>
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => handleEditClick(booking)}
-                                    className="p-1 hover:bg-gray-100 text-gray-400 hover:text-blue-600 rounded"
-                                >
-                                    <Edit2 className="w-4 h-4" />
-                                </button>
-                                <button
-                                    onClick={() => handleDeleteBooking(booking.id)}
-                                    className="p-1 hover:bg-red-50 text-red-400 hover:text-red-600 rounded"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
-                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${booking.status === 'Scheduled' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'
-                                    }`}>
-                                    {booking.status}
-                                </span>
-                            </div>
-                        </div>
-                        <h3 className="font-bold text-lg mb-1">{booking.client?.name || 'Unknown Client'}</h3>
-                        <p className="text-gray-500 text-sm mb-4">{booking.purpose}</p>
+                            <h3 className="font-bold text-lg mb-1">{booking.client?.name || 'Unknown Client'}</h3>
+                            <p className="text-gray-500 text-sm mb-4">{booking.purpose}</p>
 
-                        <div className="flex items-center text-sm text-gray-500 pt-4 border-t border-gray-50">
-                            <Clock className="w-4 h-4 mr-2" />
-                            {new Date(booking.date).toLocaleString()}
+                            <div className="flex items-center text-sm text-gray-500 pt-4 border-t border-gray-50">
+                                <Clock className="w-4 h-4 mr-2" />
+                                {new Date(booking.date).toLocaleString()}
+                            </div>
                         </div>
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
+            )}
 
             {/* Add Modal */}
             {showAddModal && (

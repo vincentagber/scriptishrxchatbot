@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Search, Phone, Mail, Trash2, Edit2, Check, AlertCircle, X } from 'lucide-react';
+import { Plus, Search, Phone, Mail, Trash2, Edit2, Check, AlertCircle, X, Users } from 'lucide-react';
+import EmptyState from '@/components/EmptyState';
+import { Skeleton } from '@/components/ui/Skeleton';
 
 // Toast Component (Ideally this should be shared, but inlining for speed/simplicity per current structure)
 function Toast({ message, type, onClose }: { message: string, type: 'success' | 'error', onClose: () => void }) {

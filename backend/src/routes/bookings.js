@@ -4,7 +4,9 @@ const router = express.Router();
 const prisma = require('../lib/prisma');
 const { authenticateToken } = require('../middleware/auth');
 const { checkPermission, verifyTenantAccess } = require('../middleware/permissions');
+
 const { checkSubscriptionAccess } = require('../middleware/subscription');
+const { createBookingSchema, updateBookingSchema } = require('../schemas/validation');
 
 /**
  * GET /api/bookings - List all bookings for the tenant
@@ -66,14 +68,8 @@ router.post('/',
     async (req, res) => {
         try {
             const tenantId = req.scopedTenantId;
-            const { clientId, date, purpose, status } = req.body;
-
-            if (!clientId || !date) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Client ID and date are required'
-                });
-            }
+            const validatedData = createBookingSchema.parse(req.body);
+            const { clientId, date, purpose, status } = validatedData;
 
             // Verify client belongs to tenant
             const client = await prisma.client.findFirst({
@@ -133,7 +129,10 @@ router.patch('/:id',
         try {
             const tenantId = req.scopedTenantId;
             const { id } = req.params;
-            const { date, purpose, status } = req.body;
+
+            // Validate input
+            const validatedData = updateBookingSchema.parse(req.body);
+            const { date, purpose, status } = validatedData; // Note: Date is already string/datetime validated
 
             // Verify booking belongs to tenant
             const existingBooking = await prisma.booking.findFirst({
@@ -173,6 +172,9 @@ router.patch('/:id',
                 message: 'Booking updated successfully'
             });
         } catch (error) {
+            if (error.name === 'ZodError') {
+                return res.status(400).json({ success: false, error: error.errors });
+            }
             console.error('Error updating booking:', error);
             res.status(500).json({
                 success: false,
