@@ -48,7 +48,7 @@ export default function MinutesPage() {
     const fetchMinutes = async () => {
         const token = localStorage.getItem('token');
         if (!token) return;
-        const res = await fetch('http://localhost:5000/api/minutes', {
+        const res = await fetch('/api/minutes', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) setMinutes(await res.json());
@@ -57,7 +57,7 @@ export default function MinutesPage() {
     const fetchClients = async () => {
         const token = localStorage.getItem('token');
         if (!token) return;
-        const res = await fetch('http://localhost:5000/api/clients', {
+        const res = await fetch('/api/clients', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) setClients(await res.json());
@@ -68,7 +68,7 @@ export default function MinutesPage() {
         setLoading(true);
         const token = localStorage.getItem('token');
         try {
-            const res = await fetch('http://localhost:5000/api/minutes', {
+            const res = await fetch('/api/minutes', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -98,7 +98,7 @@ export default function MinutesPage() {
         setLoading(true);
         const token = localStorage.getItem('token');
         try {
-            const res = await fetch(`http://localhost:5000/api/minutes/${editingMinute.id}`, {
+            const res = await fetch(`/api/minutes/${editingMinute.id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -127,7 +127,7 @@ export default function MinutesPage() {
         if (!confirm('Are you sure you want to delete this minute?')) return;
         const token = localStorage.getItem('token');
         try {
-            const res = await fetch(`http://localhost:5000/api/minutes/${id}`, {
+            const res = await fetch(`/api/minutes/${id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -197,7 +197,7 @@ export default function MinutesPage() {
                                         onClick={async () => {
                                             setLoading(true);
                                             try {
-                                                const res = await fetch('http://localhost:5000/api/chat/analyze', {
+                                                const res = await fetch('/api/chat/analyze', {
                                                     method: 'POST',
                                                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
                                                     body: JSON.stringify({ text: minute.content })
@@ -287,7 +287,7 @@ export default function MinutesPage() {
                                             if (!newMinute.content) return showToast('Enter some notes first.', 'error');
                                             setLoading(true);
                                             try {
-                                                const res = await fetch('http://localhost:5000/api/chat/refine', {
+                                                const res = await fetch('/api/chat/refine', {
                                                     method: 'POST',
                                                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
                                                     body: JSON.stringify({ text: newMinute.content })

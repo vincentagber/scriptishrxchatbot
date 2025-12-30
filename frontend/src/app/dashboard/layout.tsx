@@ -132,7 +132,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const markAllAsRead = async () => {
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/notifications/read-all`, {
+            const res = await fetch('/api/notifications/read-all', {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -170,8 +170,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         // 2. Connect Socket
         import('socket.io-client').then(({ io }) => {
-            const socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000', {
-                auth: { token }
+            // In production (same domain), path is relative. In dev, specific URL.
+            const socketUrl = process.env.NODE_ENV === 'development'
+                ? 'http://localhost:5000'
+                : ''; // Empty string means current domain
+
+            const socket = io(socketUrl, {
+                auth: { token },
+                path: '/socket.io' // Default path, but good to be explicit/standard
             });
 
             socket.on('notification:new', (newNotification) => {
