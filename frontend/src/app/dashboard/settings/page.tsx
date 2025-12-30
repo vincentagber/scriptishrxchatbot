@@ -36,12 +36,12 @@ function AuditLogsModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => v
     const fetchLogs = async () => {
         setLoading(true);
         try {
-            const res = await fetch('http://localhost:5000/api/settings/audit-logs', {
+            const res = await fetch('/api/settings/audit-logs', {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
             });
             if (res.ok) {
                 const data = await res.json();
-                setLogs(data);
+                setLogs(data.logs || []);
             }
         } catch (error) {
             console.error(error);
@@ -191,7 +191,7 @@ function WorkflowModal({ isOpen, onClose, onSave }: { isOpen: boolean, onClose: 
 function SubscriptionSettings({ plan, showToast }: any) {
     const handleManageBilling = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/payments/portal', {
+            const res = await fetch('/api/payments/portal', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -488,30 +488,31 @@ export default function SettingsPage() {
     const fetchSettings = async () => {
         const token = localStorage.getItem('token');
         try {
-            const res = await fetch('http://localhost:5000/api/settings', {
+            const res = await fetch('/api/settings', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
                 const data = await res.json();
+                const user = data.user || {};
 
                 // Backend returns the User object directly, which contains tenant info
                 setSettings({
-                    brandColor: data.tenant?.brandColor || '#000000',
-                    aiName: data.tenant?.aiName || '',
-                    logoUrl: data.tenant?.logoUrl || '',
-                    customSystemPrompt: data.tenant?.customSystemPrompt || '',
-                    plan: data.tenant?.plan || 'Basic'
+                    brandColor: user.tenant?.brandColor || '#000000',
+                    aiName: user.tenant?.aiName || '',
+                    logoUrl: user.tenant?.logoUrl || '',
+                    customSystemPrompt: user.tenant?.customSystemPrompt || '',
+                    plan: user.tenant?.plan || 'Basic'
                 });
 
-                if (data.tenant?.integrations) {
-                    try { setIntegrations(JSON.parse(data.tenant.integrations)); } catch (e) { }
+                if (user.tenant?.integrations) {
+                    try { setIntegrations(JSON.parse(user.tenant.integrations)); } catch (e) { }
                 }
 
                 setProfile({
-                    name: data.name || '',
-                    email: data.email,
-                    phoneNumber: data.phoneNumber || '',
-                    avatarUrl: data.avatarUrl || ''
+                    name: user.name || '',
+                    email: user.email,
+                    phoneNumber: user.phoneNumber || '',
+                    avatarUrl: user.avatarUrl || ''
                 });
             }
         } catch (error) {
@@ -524,7 +525,7 @@ export default function SettingsPage() {
 
     const fetchWorkflows = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/workflows', {
+            const res = await fetch('/api/workflows', {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
             });
             const data = await res.json();
@@ -549,13 +550,13 @@ export default function SettingsPage() {
         setSaving(true);
         const token = localStorage.getItem('token');
         try {
-            await fetch('http://localhost:5000/api/settings/tenant', {
+            await fetch('/api/settings/tenant', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify(settings)
             });
 
-            await fetch('http://localhost:5000/api/settings/profile', {
+            await fetch('/api/settings/profile', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({
@@ -581,7 +582,7 @@ export default function SettingsPage() {
         setSaving(true);
         const token = localStorage.getItem('token');
         try {
-            const res = await fetch('http://localhost:5000/api/settings/password', {
+            const res = await fetch('/api/settings/password', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({
@@ -607,7 +608,7 @@ export default function SettingsPage() {
     const handleWorkflowCreate = async (data: any) => {
         setIsWorkflowModalOpen(false);
         try {
-            const res = await fetch('http://localhost:5000/api/workflows', {
+            const res = await fetch('/api/workflows', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -630,7 +631,7 @@ export default function SettingsPage() {
     const handleWorkflowDelete = async (id: string) => {
         if (!confirm("Delete this workflow?")) return;
         try {
-            const res = await fetch(`http://localhost:5000/api/workflows/${id}`, {
+            const res = await fetch(`/api/workflows/${id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
             });
@@ -655,7 +656,7 @@ export default function SettingsPage() {
 
         const token = localStorage.getItem('token');
         try {
-            const res = await fetch('http://localhost:5000/api/upload/avatar', {
+            const res = await fetch('/api/upload/avatar', {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` },
                 body: formData
@@ -700,7 +701,7 @@ export default function SettingsPage() {
         };
 
         try {
-            const res = await fetch('http://localhost:5000/api/settings/integrations', {
+            const res = await fetch('/api/settings/integrations', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ integrations: JSON.stringify(newState) }) // Note JSON stringify wrapper
@@ -728,7 +729,7 @@ export default function SettingsPage() {
         const newState = { ...integrations, [key]: { connected: false } };
 
         try {
-            const res = await fetch('http://localhost:5000/api/settings/integrations', {
+            const res = await fetch('/api/settings/integrations', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ integrations: JSON.stringify(newState) })
