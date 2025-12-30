@@ -158,6 +158,10 @@ const twilioRouter = require('./routes/twilio');
 app.use('/api/twilio', twilioRouter);
 app.use('/webhooks', webhooksRouter); // Existing webhooks (Stripe?)
 
+// Admin Routes (Subscribers, Analytics)
+const adminRouter = require('./routes/admin');
+app.use('/api/admin', adminRouter);
+
 const os = require('os');
 
 // ==================== ACTIVE USER TRACKING ====================

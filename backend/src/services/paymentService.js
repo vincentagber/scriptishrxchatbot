@@ -187,10 +187,40 @@ class PaymentService {
 
         console.log(`✅ Payment Verified: ${reference}`);
 
-        // Send Email
-        // Re-fetch user if needed
+        // 1. Notify the Subscriber (Success)
         if (existingTx && existingTx.user) {
             await this.sendSuccessEmail(existingTx.user, amount / 100, reference, metadata?.plan);
+        }
+
+        // 2. Notify SUPER_ADMINs (New Subscription Event)
+        try {
+            const superAdmins = await prisma.user.findMany({
+                where: { role: 'SUPER_ADMIN' },
+                select: { email: true }
+            });
+
+            const subscriptionType = metadata?.type || 'INDIVIDUAL';
+            const subscriberName = existingTx?.user?.name || existingTx?.user?.email || 'Unknown User';
+
+            for (const admin of superAdmins) {
+                await notificationService.sendEmail(
+                    admin.email,
+                    `🔔 New Subscription Alert: ${subscriberName}`,
+                    `<div style="font-family: sans-serif; padding: 20px; border: 1px solid #ddd;">
+                        <h2>New Subscriber Joined</h2>
+                        <p><strong>Type:</strong> ${subscriptionType}</p>
+                        <p><strong>Subscriber:</strong> ${subscriberName} (${existingTx?.user?.email})</p>
+                        <p><strong>Plan:</strong> ${metadata?.plan}</p>
+                        <p><strong>Amount:</strong> NGN ${amount / 100}</p>
+                        <p><strong>Reference:</strong> ${reference}</p>
+                        <p><strong>Date:</strong> ${new Date().toLocaleString()}</p>
+                        <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard/admin">View in Dashboard</a>
+                     </div>`
+                );
+            }
+            console.log(`📧 Superadmin Alerts Sent: ${superAdmins.length}`);
+        } catch (emailErr) {
+            console.error('Failed to alert superadmins:', emailErr);
         }
     }
 

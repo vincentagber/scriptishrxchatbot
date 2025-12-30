@@ -52,7 +52,7 @@ model User {
   email        String  @unique
   password     String
   name         String?
-  role         String  @default("MEMBER") // Keeping for legacy string support
+  role         String  @default("MEMBER") // SUPER_ADMIN, ADMIN, MEMBER
   
   // RBAC Fields
   roleId       String?
@@ -194,17 +194,25 @@ model CallSession {
 }
 
 model Subscription {
-  id        String   @id @default(uuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id])
-  plan      String
-  status    String
-  stripeId  String?
-  paypalId  String?
-  startDate DateTime @default(now())
-  endDate   DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id               String   @id @default(uuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id])
+  
+  // Core Fields
+  type             String   @default("INDIVIDUAL") // INDIVIDUAL, ORGANIZATION
+  plan             String   // Basic, Intermediate, Advanced
+  status           String   // active, trial, canceled, expired
+  billingCycle     String   @default("monthly") // monthly, yearly
+  
+  // Payment Links
+  stripeId         String?  // Legacy
+  paypalId         String?  // Legacy
+  paymentReference String?  // Active Payment Ref (Paystack/Stripe)
+  
+  startDate        DateTime @default(now())
+  endDate          DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 }
 
 model Workflow {

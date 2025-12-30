@@ -43,13 +43,10 @@ export default function DashboardPage() {
     // New Dedicated Voice Stats
     const { data: voiceStats, isLoading: voiceLoading } = useVoiceStats();
 
-    // User Profile State
-    const [userName, setUserName] = useState('');
-
     // UI States
     const [liveUsers, setLiveUsers] = useState(12);
     const [systemLoad, setSystemLoad] = useState(24);
-    const [greeting, setGreeting] = useState('');
+    const [greetingMessage, setGreetingMessage] = useState('');
 
     // Poll System Status
     useEffect(() => {
@@ -72,25 +69,26 @@ export default function DashboardPage() {
         return () => clearInterval(interval);
     }, []);
 
-    // Set Greeting & Fetch User Name
+    // Set Greeting with First Name
     useEffect(() => {
-        // 1. Time-based Greeting
         const hour = new Date().getHours();
-        if (hour < 12) setGreeting('Good Morning');
-        else if (hour < 18) setGreeting('Good Afternoon');
-        else setGreeting('Good Evening');
+        let baseGreeting = '';
+        if (hour < 12) baseGreeting = 'Good Morning';
+        else if (hour < 18) baseGreeting = 'Good Afternoon';
+        else baseGreeting = 'Good Evening';
 
-        // 2. Fetch User Name
         const fetchUser = async () => {
             try {
                 const token = localStorage.getItem('token');
-                if (!token) return;
+                if (!token) {
+                    setGreetingMessage(`${baseGreeting}, Admin`);
+                    return;
+                }
                 const { data } = await import('@/lib/api').then(m => m.default.get('/settings'));
-                // Use first name
                 const firstName = data.name ? data.name.split(' ')[0] : 'Admin';
-                setUserName(firstName);
+                setGreetingMessage(`${baseGreeting}, ${firstName}`);
             } catch (e) {
-                setUserName('Admin');
+                setGreetingMessage(`${baseGreeting}, Admin`);
             }
         };
         fetchUser();
@@ -127,7 +125,7 @@ export default function DashboardPage() {
             <motion.div variants={itemVariants} className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
                 <div>
                     <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
-                        {greeting}, {userName}
+                        {greetingMessage}
                         <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold border border-emerald-200 tracking-wide uppercase">
                             Live
                         </span>
