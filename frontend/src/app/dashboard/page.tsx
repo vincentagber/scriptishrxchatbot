@@ -286,12 +286,12 @@ export default function DashboardPage() {
                                     <Zap className="w-8 h-8 text-yellow-400" />
                                 </div>
                                 <span className="px-3 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-full text-xs font-bold uppercase tracking-wider animate-pulse">
-                                    Voice Agent Active
+                                    Twilio Agent Active
                                 </span>
                             </div>
 
-                            <h3 className="text-2xl font-bold mb-2">VoiceCake Agent</h3>
-                            <p className="text-slate-400 text-sm mb-6">Handling inbound inquiries and scheduling.</p>
+                            <h3 className="text-2xl font-bold mb-2">Twilio Agent</h3>
+                            <p className="text-slate-400 text-sm mb-6">Handling inbound inquiries and scheduling via Twilio.</p>
 
                             <div className="space-y-4">
                                 <div className="flex justify-between items-center text-sm">

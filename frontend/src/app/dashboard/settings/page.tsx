@@ -1057,7 +1057,7 @@ export default function SettingsPage() {
 
                             <div>
                                 <h3 className="text-sm font-bold text-gray-900 mb-4 border-b border-gray-100 pb-2">Active Workflows</h3>
-                                {workflows.length === 0 ? (
+                                {(!Array.isArray(workflows) || workflows.length === 0) ? (
                                     <div className="p-8 text-center bg-slate-50 border border-dashed border-slate-200 rounded-2xl">
                                         <Activity className="w-8 h-8 text-slate-300 mx-auto mb-2" />
                                         <p className="text-slate-500 text-sm">No custom workflows yet.</p>
@@ -1065,19 +1065,23 @@ export default function SettingsPage() {
                                 ) : (
                                     <div className="space-y-3">
                                         {workflows.map((wf) => (
-                                            <div key={wf.id} className="p-4 bg-white border border-gray-200 rounded-xl flex items-center justify-between group hover:border-blue-200 hover:shadow-sm transition-all">
+                                            <div key={wf?.id || Math.random()} className="p-4 bg-white border border-gray-200 rounded-xl flex items-center justify-between group hover:border-blue-200 hover:shadow-sm transition-all">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
                                                         <Zap className="w-4 h-4" />
                                                     </div>
                                                     <div>
-                                                        <p className="font-bold text-gray-900 text-sm">{wf.name}</p>
-                                                        <p className="text-xs text-gray-500 capitalize">{wf.trigger.replace(/_/g, ' ')} → {wf.action.replace(/_/g, ' ')}</p>
+                                                        <p className="font-bold text-gray-900 text-sm">{wf?.name || 'Untitled'}</p>
+                                                        <p className="text-xs text-gray-500 capitalize">
+                                                            {(wf?.trigger || '').replace(/_/g, ' ')} → {(wf?.action || '').replace(/_/g, ' ')}
+                                                        </p>
                                                     </div>
                                                 </div>
-                                                <button onClick={() => handleWorkflowDelete(wf.id)} className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
+                                                {wf?.id && (
+                                                    <button onClick={() => handleWorkflowDelete(wf.id)} className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                )}
                                             </div>
                                         ))}
                                     </div>
