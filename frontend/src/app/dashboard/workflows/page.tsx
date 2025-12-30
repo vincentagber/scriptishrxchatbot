@@ -25,7 +25,7 @@ export default function WorkflowsPage() {
         // Fetch workflows
         const fetchWorkflows = async () => {
             try {
-                const res = await fetch('http://localhost:5000/api/workflows', {
+                const res = await fetch('/api/workflows', {
                     headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
                 });
                 const data = await res.json();
@@ -44,7 +44,7 @@ export default function WorkflowsPage() {
     const handleDelete = async (id: string) => {
         if (!confirm('Are you sure you want to delete this workflow?')) return;
         try {
-            const res = await fetch(`http://localhost:5000/api/workflows/${id}`, {
+            const res = await fetch(`/api/workflows/${id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
             });
@@ -69,7 +69,7 @@ export default function WorkflowsPage() {
         };
 
         try {
-            const res = await fetch('http://localhost:5000/api/workflows', {
+            const res = await fetch('/api/workflows', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

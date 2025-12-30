@@ -10,7 +10,7 @@ export default function NotificationsPage() {
     const fetchNotifications = async () => {
         try {
             setLoading(true);
-            const res = await fetch('http://localhost:5000/api/notifications', {
+            const res = await fetch('/api/notifications', {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
             });
             const data = await res.json();
@@ -30,7 +30,7 @@ export default function NotificationsPage() {
 
     const handleMarkAllRead = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/notifications/read-all', {
+            const res = await fetch('/api/notifications/read-all', {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`,

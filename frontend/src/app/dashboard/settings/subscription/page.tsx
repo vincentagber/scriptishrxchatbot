@@ -86,7 +86,7 @@ export default function SubscriptionPage() {
             const token = localStorage.getItem('token');
             if (!token) return;
             try {
-                const res = await fetch('http://localhost:5000/api/settings', {
+                const res = await fetch('/api/settings', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (res.ok) {
@@ -112,7 +112,7 @@ export default function SubscriptionPage() {
             }
 
             // Note: In a real app we'd likely POST to /api/create-checkout-session
-            const res = await fetch('http://localhost:5000/api/payments/subscribe', {
+            const res = await fetch('/api/payments/subscribe', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
