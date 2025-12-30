@@ -1,30 +1,26 @@
 const axios = require('axios');
 const prisma = require('../lib/prisma');
-const logger = require('../utils/logger');
+const notificationService = require('./notificationService');
 const AppError = require('../utils/AppError');
 
-const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
-const PAYSTACK_BASE_URL = 'https://api.paystack.co';
-
-if (!PAYSTACK_SECRET_KEY) {
-    logger.warn('⚠️ PaymentService: PAYSTACK_SECRET_KEY missing. Payments unavailable.');
-}
-
-// Plan Configurations (Hardcoded for now, can be moved to DB/Env)
-const PLANS = {
-    'Basic': { amount: 2900, planCode: process.env.PAYSTACK_PLAN_BASIC }, // Amount in kobo/cents. 29.00
-    'Intermediate': { amount: 7900, planCode: process.env.PAYSTACK_PLAN_INTERMEDIATE },
-    'Advanced': { amount: 19900, planCode: process.env.PAYSTACK_PLAN_ADVANCED }
-};
-
 class PaymentService {
-    /**
-     * Initiate a Paystack Transaction (Checkout)
-     */
-    async initiateTransaction(userId, planName, cycle = 'monthly') {
-        if (!PAYSTACK_SECRET_KEY) {
-            throw new AppError('Payment processing unavailable: Paystack configuration missing.', 503);
+    constructor() {
+        if (process.env.PAYSTACK_SECRET_KEY) {
+            this.paystack = axios.create({
+                baseURL: 'https://api.paystack.co',
+                headers: {
+                    Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+        } else {
+            console.warn('⚠️ Paystack Secret Key Missing. Payment features will be disabled.');
         }
+    }
+
+    // Initialize Transaction
+    async initiateTransaction(userId, plan, cycle = 'monthly') {
+        if (!this.paystack) throw new AppError('Payment processing unavailable.', 503);
 
         const user = await prisma.user.findUnique({
             where: { id: userId },
@@ -33,117 +29,191 @@ class PaymentService {
 
         if (!user) throw new AppError('User not found', 404);
 
-        const planConfig = PLANS[planName];
-        if (!planConfig) throw new AppError('Invalid plan selected', 400);
-
-        // Metadata to track user and plan in webhook
-        const metadata = {
-            userId: user.id,
-            tenantId: user.tenantId,
-            planName: planName,
-            cycle: cycle
+        // Plan Logic
+        const priceMap = {
+            'Basic': { amount: 2900, planCode: process.env.PAYSTACK_PLAN_BASIC },
+            'Intermediate': { amount: 7900, planCode: process.env.PAYSTACK_PLAN_INTERMEDIATE },
+            'Advanced': { amount: 19900, planCode: process.env.PAYSTACK_PLAN_ADVANCED }
         };
 
+        const planConfig = priceMap[plan];
+        if (!planConfig) throw new AppError('Invalid plan selected', 400);
+
         try {
+            // Call Paystack API
             const payload = {
                 email: user.email,
-                amount: planConfig.amount * 100, // Paystack expects lowest currency unit (kobo)
-                currency: 'USD', // Defaulting to USD as per SaaS likelyhood.
-                metadata: metadata,
+                amount: planConfig.amount * 100, // kobo
+                currency: 'NGN',
+                metadata: {
+                    userId: user.id,
+                    tenantId: user.tenantId,
+                    plan,
+                    cycle
+                },
                 callback_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/settings/subscription?status=success`,
-                channels: ['card']
+                channels: ['card', 'bank', 'ussd', 'qr', 'mobile_money', 'bank_transfer']
             };
 
-            // If utilizing Paystack Plans (Subscriptions):
-            if (planConfig.planCode) {
-                payload.plan = planConfig.planCode;
-            }
+            const response = await this.paystack.post('/transaction/initialize', payload);
+            const { authorization_url, access_code, reference } = response.data.data;
 
-            const response = await axios.post(`${PAYSTACK_BASE_URL}/transaction/initialize`, payload, {
-                headers: {
-                    Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
-                    'Content-Type': 'application/json'
+            // PERSIST TRANSACTION TO DB
+            await prisma.transaction.create({
+                data: {
+                    userId: user.id,
+                    reference: reference,
+                    amount: planConfig.amount * 100,
+                    currency: 'NGN',
+                    status: 'INITIATED',
+                    plan: plan,
+                    metadata: payload
                 }
             });
 
-            if (response.data.status) {
-                logger.info(`Paystack transaction initialized for user ${userId}`);
-                return {
-                    url: response.data.data.authorization_url,
-                    access_code: response.data.data.access_code,
-                    reference: response.data.data.reference
-                };
-            } else {
-                throw new Error(response.data.message || 'Paystack initialization failed');
-            }
-
+            console.log(`✅ Transaction Initiated: ${reference}`);
+            return { url: authorization_url, reference };
         } catch (error) {
-            logger.error('Paystack Init Error:', error.response?.data || error.message);
+            console.error('Paystack Init Error:', error.response?.data || error.message);
             throw new AppError('Failed to initiate payment', 502);
         }
     }
 
-    /**
-     * Verify Transaction (can be called manually or via webhook)
-     */
+    // Verify Transaction via Webhook or Manual
     async verifyTransaction(reference) {
-        if (!PAYSTACK_SECRET_KEY) throw new AppError('Paystack config missing', 503);
+        if (!this.paystack) return false;
 
-        try {
-            const response = await axios.get(`${PAYSTACK_BASE_URL}/transaction/verify/${reference}`, {
-                headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` }
+        // SIMULATION MODE (Dev/Audit only)
+        if (reference.startsWith('sim_') && process.env.NODE_ENV !== 'production') {
+            console.log(`⚠️ Simulation Verify: ${reference}`);
+            const existingTx = await prisma.transaction.findUnique({
+                where: { reference },
+                include: { user: true }
             });
 
-            if (response.data.status && response.data.data.status === 'success') {
-                return response.data.data;
+            if (existingTx) {
+                await this._handleSuccessResponse(existingTx, reference, {
+                    userId: existingTx.userId,
+                    tenantId: existingTx.metadata?.tenantId,
+                    plan: existingTx.plan
+                }, existingTx.amount);
+                return true;
             }
-            return null;
+            return false;
+        }
+
+        try {
+            // 1. Check DB first to avoid duplicate work if already successful
+            const existingTx = await prisma.transaction.findUnique({
+                where: { reference },
+                include: { user: true }
+            });
+
+            if (existingTx && existingTx.status === 'SUCCESS') {
+                return true;
+            }
+
+            // 2. Verify with Paystack
+            const response = await this.paystack.get(`/transaction/verify/${reference}`);
+            const { status, amount, metadata } = response.data.data;
+
+            if (status === 'success') {
+                await this._handleSuccessResponse(existingTx, reference, metadata, amount);
+                return true;
+            } else {
+                await prisma.transaction.update({
+                    where: { reference },
+                    data: {
+                        status: 'FAILED',
+                        errorMessage: response.data.data.gateway_response || 'Payment Failed'
+                    }
+                });
+                if (existingTx && existingTx.user) {
+                    this.sendFailureEmail(existingTx.user, metadata?.plan, 'Payment Declined');
+                }
+                return false;
+            }
+
         } catch (error) {
-            logger.error('Paystack Verify Error:', error.message);
-            throw new AppError('Payment verification failed', 502);
+            console.error('Verification Error:', error.message);
+            return false;
         }
     }
 
-    /**
-     * Handle Webhook Success
-     */
-    async handleWebhookSuccess(data) {
-        const { metadata, reference, customer } = data;
-
-        if (!metadata || !metadata.userId) {
-            logger.warn(`Webhook: Missing metadata for reference ${reference}`);
-            return;
-        }
-
-        const { userId, planName } = metadata;
-
-        logger.info(`Webhook: Processing success for user ${userId}, plan ${planName}`);
-
+    async _handleSuccessResponse(existingTx, reference, metadata, amount) {
         await prisma.$transaction(async (tx) => {
-            // Update Tenant Subscription
-            const user = await tx.user.findUnique({ where: { id: userId }, include: { tenant: true } });
-            if (!user) return;
+            // Update Transaction
+            // We use upsert on Transaction just in case it didn't exist (webhook came before local db create finished? unlikely but safe)
+            // Actually assuming it exists or we update it.
+            if (existingTx) {
+                await tx.transaction.update({
+                    where: { reference },
+                    data: {
+                        status: 'SUCCESS',
+                        paidAt: new Date(),
+                        metadata: metadata
+                    }
+                });
+            }
 
-            // Calculate Next Billing Date
-            const nextBillingDate = new Date();
-            nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
+            // Update Subscription
+            const plan = metadata?.plan || 'Basic';
+            if (metadata && metadata.userId) {
+                await tx.subscription.upsert({
+                    where: { userId: metadata.userId },
+                    create: {
+                        userId: metadata.userId,
+                        plan: plan,
+                        status: 'active',
+                        stripeId: `paystack_${reference}`,
+                        startDate: new Date()
+                    },
+                    update: {
+                        plan: plan,
+                        status: 'active',
+                        updatedAt: new Date()
+                    }
+                });
 
-            await tx.tenant.update({
-                where: { id: user.tenantId },
-                data: {
-                    plan: planName,
-                    subscriptionStatus: 'active',
-                    stripeId: `${customer.customer_code}`, // Reusing column for Paystack Customer Code or Email
-                    nextBillingDate: nextBillingDate
+                // Update Tenant (Access Control)
+                if (metadata.tenantId) {
+                    await tx.tenant.update({
+                        where: { id: metadata.tenantId },
+                        data: { plan: plan }
+                    });
                 }
-            });
-
-            logger.info(`Webhook: Updated tenant ${user.tenantId} to ${planName}`);
+            }
         });
+
+        console.log(`✅ Payment Verified: ${reference}`);
+
+        // Send Email
+        // Re-fetch user if needed
+        if (existingTx && existingTx.user) {
+            await this.sendSuccessEmail(existingTx.user, amount / 100, reference, metadata?.plan);
+        }
+    }
+
+    async sendSuccessEmail(user, amount, reference, plan) {
+        const subject = `Payment Successful - ${plan} Plan`;
+        const body = `
+            <div style="font-family: sans-serif; padding: 20px;">
+                <h2>Payment Confirmed!</h2>
+                <p>Hi ${user.name || 'there'},</p>
+                <p>We successfully received your payment of <strong>NGN ${amount}</strong> for the <strong>${plan}</strong> plan.</p>
+                <p><strong>Reference:</strong> ${reference}</p>
+                <p>Your subscription is now active.</p>
+            </div>
+        `;
+        await notificationService.sendEmail(user.email, subject, body);
+    }
+
+    async sendFailureEmail(user, plan, reason) {
+        const subject = `Payment Failed for ${plan}`;
+        await notificationService.sendEmail(user.email, subject, `Payment failed. Reason: ${reason}`);
     }
 
     async createPortalSession(userId) {
-        // For Paystack, return a link to manage subscriptions or a message
         return { url: 'https://dashboard.paystack.com/#/subscriptions' };
     }
 }

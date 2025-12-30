@@ -2,7 +2,7 @@ const axios = require('axios');
 
 async function login() {
     try {
-        const res = await axios.post('http://localhost:3001/api/auth/login', {
+        const res = await axios.post('http://localhost:5000/api/auth/login', {
             email: 'test@scriptishrx.net',
             password: 'password123'
         });
@@ -22,7 +22,7 @@ async function verifyPayments() {
     // 2. Initiate Transaction
     console.log('2. Initiating Checkout Session (Basic Plan)...');
     try {
-        const res = await axios.post('http://localhost:3001/api/payments/create-session',
+        const res = await axios.post('http://localhost:5000/api/payments/create-session',
             { plan: 'Basic', cycle: 'monthly' },
             { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -44,7 +44,7 @@ async function verifyPayments() {
     // 3. Test Portal Link (Management)
     console.log('3. getting Portal/Management Link...');
     try {
-        const res = await axios.post('http://localhost:3001/api/payments/portal', {}, {
+        const res = await axios.post('http://localhost:5000/api/payments/portal', {}, {
             headers: { Authorization: `Bearer ${token}` }
         });
         console.log('✅ Portal Link:', res.data.url);

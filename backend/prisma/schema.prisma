@@ -66,6 +66,7 @@ model User {
   avatarUrl    String?
   phoneNumber  String?
   notifications Notification[]
+  transactions Transaction[]
 
   @@index([tenantId])
   @@index([email])
@@ -307,4 +308,24 @@ model CustomTool {
   @@unique([tenantId, name])
   @@index([tenantId])
   @@index([isActive])
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  reference   String   @unique // Paystack Reference
+  amount      Int      // In kobo
+  currency    String   @default("NGN")
+  status      String   // INITIATED, SUCCESS, FAILED, ABANDONED
+  plan        String?
+  metadata    Json?
+  errorMessage String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  paidAt      DateTime?
+
+  @@index([userId])
+  @@index([status])
 }

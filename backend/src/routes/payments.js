@@ -7,7 +7,7 @@ const logger = require('../utils/logger');
 const AppError = require('../utils/AppError');
 
 // Paystack Webhook
-router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+router.post('/webhook', async (req, res) => {
     const signature = req.headers['x-paystack-signature'];
     const secret = process.env.PAYSTACK_SECRET_KEY;
 
@@ -15,23 +15,21 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
         return res.status(400).send('Webhook Error: Configuration missing');
     }
 
-    const hash = crypto.createHmac('sha512', secret).update(req.body).digest('hex');
+    // Verify Signature using rawBody captured in app.js
+    const hash = crypto.createHmac('sha512', secret)
+        .update(req.rawBody || JSON.stringify(req.body)) // Fallback if rawBody missing (dev/test)
+        .digest('hex');
 
     if (hash !== signature) {
         logger.warn('Webhook Error: Invalid Signature');
         return res.status(400).send('Invalid Signature');
     }
 
-    let event;
-    try {
-        event = JSON.parse(req.body.toString());
-    } catch (err) {
-        return res.status(400).send(`Webhook Error: ${err.message}`);
-    }
+    const event = req.body; // Already parsed by global middleware
 
     try {
         if (event.event === 'charge.success') {
-            await paymentService.handleWebhookSuccess(event.data);
+            await paymentService.verifyTransaction(event.data.reference);
         }
         res.status(200).send({ received: true });
     } catch (err) {
@@ -46,7 +44,7 @@ router.post('/create-session', authenticateToken, async (req, res, next) => {
         const { plan, cycle } = req.body;
         if (!plan) throw new AppError('Plan is required', 400);
 
-        const { url, reference } = await paymentService.initiateTransaction(req.user.id, plan, cycle);
+        const { url, reference } = await paymentService.initiateTransaction(req.user.userId, plan, cycle);
 
         res.json({ url, reference });
     } catch (error) {
@@ -57,7 +55,7 @@ router.post('/create-session', authenticateToken, async (req, res, next) => {
 // Portal
 router.post('/portal', authenticateToken, async (req, res, next) => {
     try {
-        const { url } = await paymentService.createPortalSession(req.user.id);
+        const { url } = await paymentService.createPortalSession(req.user.userId);
         res.json({ url });
     } catch (error) {
         next(error);
