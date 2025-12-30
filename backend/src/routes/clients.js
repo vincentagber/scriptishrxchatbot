@@ -172,10 +172,16 @@ router.post('/',
                 message: 'Client created successfully'
             });
         } catch (error) {
+            if (error.name === 'ZodError') {
+                return res.status(400).json({ success: false, error: error.issues });
+            }
+            if (error.code === 'P2002') {
+                return res.status(409).json({ success: false, error: 'A client with this email or phone already exists.' });
+            }
             console.error('Error creating client:', error);
             res.status(500).json({
                 success: false,
-                error: 'Failed to create client'
+                error: error.message || 'Failed to create client' // Expose message for now to debug
             });
         }
     }

@@ -25,6 +25,19 @@ async function checkSubscriptionAccess(req, res, next) {
             });
         }
 
+        // SUPER_ADMIN Bypass
+        if (req.user?.role === 'SUPER_ADMIN') {
+            req.subscription = {
+                plan: 'Advanced', // Treat as highest tier
+                status: 'Active',
+                isTrialActive: false,
+                daysRemaining: 9999,
+                hasFullAccess: true,
+                features: ['ai_chat', 'voice_agent', 'advanced_analytics', 'custom_branding', 'api_integrations', 'white_label', 'unlimited_clients', 'workflow_automation']
+            };
+            return next();
+        }
+
         // Load user with subscription
         const user = await prisma.user.findUnique({
             where: { id: userId },

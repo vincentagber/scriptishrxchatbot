@@ -313,8 +313,8 @@ export default function VoicePage() {
                 <button
                     onClick={() => setActiveTab('config')}
                     className={`px-5 py-2.5 rounded-lg font-medium text-sm transition-all ${activeTab === 'config'
-                            ? 'bg-white text-gray-900 shadow-sm'
-                            : 'text-gray-500 hover:text-gray-700'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700'
                         }`}
                 >
                     <Settings className="w-4 h-4 inline-block mr-2" />
@@ -323,8 +323,8 @@ export default function VoicePage() {
                 <button
                     onClick={() => setActiveTab('history')}
                     className={`px-5 py-2.5 rounded-lg font-medium text-sm transition-all ${activeTab === 'history'
-                            ? 'bg-white text-gray-900 shadow-sm'
-                            : 'text-gray-500 hover:text-gray-700'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700'
                         }`}
                 >
                     <Clock className="w-4 h-4 inline-block mr-2" />
@@ -451,31 +451,34 @@ export default function VoicePage() {
                             </div>
                         </div>
 
-                        {/* Outbound Call */}
+                        {/* Test Your Agent (Outbound) */}
                         <div className="bg-white rounded-[1.5rem] shadow-sm border border-gray-200 overflow-hidden">
                             <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex items-center gap-3">
                                 <div className="p-2 bg-green-600 text-white rounded-lg shadow-sm">
                                     <PhoneOutgoing className="w-5 h-5" />
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-bold text-gray-900">Outbound Call</h2>
-                                    <p className="text-gray-500 text-xs mt-0.5">Reach clients with your AI Agent.</p>
+                                    <h2 className="text-lg font-bold text-gray-900">Test Your Agent</h2>
+                                    <p className="text-gray-500 text-xs mt-0.5">Receive a call to verify your AI configuration.</p>
                                 </div>
                             </div>
                             <div className="p-6 space-y-5">
                                 <form onSubmit={handleCall} className="space-y-4">
-                                    <Input
-                                        placeholder="+1 (555) 000-0000"
-                                        value={phoneNumber}
-                                        onChange={(e) => setPhoneNumber(e.target.value)}
-                                        className="h-11 bg-white border-gray-300 text-gray-900"
-                                    />
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-semibold text-gray-800">Your Phone Number</label>
+                                        <Input
+                                            placeholder="+1 (555) 000-0000"
+                                            value={phoneNumber}
+                                            onChange={(e) => setPhoneNumber(e.target.value)}
+                                            className="h-11 bg-white border-gray-300 text-gray-900"
+                                        />
+                                    </div>
                                     <Button
                                         type="submit"
                                         className="w-full h-11 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold"
                                         disabled={isCalling || !phoneNumber}
                                     >
-                                        {isCalling ? <><Activity className="w-4 h-4 animate-spin mr-2" /> Dialing...</> : 'Dial Number'}
+                                        {isCalling ? <><Activity className="w-4 h-4 animate-spin mr-2" /> Calling...</> : 'Call Me'}
                                     </Button>
                                     {callStatus === 'success' && (
                                         <div className="p-3 bg-green-50 text-green-700 rounded-lg text-sm text-center border border-green-100">

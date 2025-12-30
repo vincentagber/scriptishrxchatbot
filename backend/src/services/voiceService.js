@@ -629,8 +629,8 @@ async function initiateOutboundCall(phoneNumber, tenantId, customData = {}) {
         logger.error('Outbound call error', error);
         return {
             success: false,
-            error: 'call_failed',
-            message: error.message || 'Failed to initiate call'
+            error: error.message || 'Call failed', // Human readable for frontend toast
+            code: 'call_failed'
         };
     }
 }
