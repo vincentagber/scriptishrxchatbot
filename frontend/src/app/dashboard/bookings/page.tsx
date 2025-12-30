@@ -48,7 +48,8 @@ export default function BookingsPage() {
             if (res.ok) {
                 const contentType = res.headers.get("content-type");
                 if (contentType && contentType.includes("application/json")) {
-                    setBookings(await res.json());
+                    const data = await res.json();
+                    setBookings(data.bookings || []);
                 } else {
                     console.error('Received non-JSON response from API');
                 }
@@ -68,7 +69,8 @@ export default function BookingsPage() {
             if (res.ok) {
                 const contentType = res.headers.get("content-type");
                 if (contentType && contentType.includes("application/json")) {
-                    setClients(await res.json());
+                    const data = await res.json();
+                    setClients(data.clients || []);
                 }
             }
         } catch (error) {

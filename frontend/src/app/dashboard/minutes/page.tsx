@@ -51,7 +51,10 @@ export default function MinutesPage() {
         const res = await fetch('/api/minutes', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (res.ok) setMinutes(await res.json());
+        if (res.ok) {
+            const data = await res.json();
+            setMinutes(data.minutes || []);
+        }
     };
 
     const fetchClients = async () => {
@@ -60,7 +63,10 @@ export default function MinutesPage() {
         const res = await fetch('/api/clients', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (res.ok) setClients(await res.json());
+        if (res.ok) {
+            const data = await res.json();
+            setClients(data.clients || []);
+        }
     };
 
     const handleAddMinute = async () => {

@@ -48,7 +48,7 @@ export default function ClientsPage() {
                 const contentType = res.headers.get("content-type");
                 if (contentType && contentType.includes("application/json")) {
                     const data = await res.json();
-                    setClients(data);
+                    setClients(data.clients || []);
                 } else {
                     console.error('Received non-JSON response from API');
                 }

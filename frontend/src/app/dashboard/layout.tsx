@@ -477,7 +477,7 @@ function Avatar({ url, name, size = 'md' }: { url?: string; name?: string; size?
         <div className={`${dims} rounded-full overflow-hidden ring-4 ring-gray-50 flex items-center justify-center font-bold bg-white text-blue-600 shadow-sm border border-gray-100`}>
             {url ? (
                 <img
-                    src={url.startsWith('http') ? url : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${url}`}
+                    src={url.startsWith('http') ? url : url}
                     className="w-full h-full object-cover"
                     alt={name || 'User'}
                 />
