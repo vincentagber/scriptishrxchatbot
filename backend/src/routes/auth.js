@@ -177,7 +177,7 @@ router.post('/register', registerLimiter, async (req, res) => {
             tenant: { id: tenant.id, name: tenant.name }
         });
     } catch (error) {
-        if (error.name === 'ZodError') return res.status(400).json({ error: error.errors });
+        if (error.name === 'ZodError') return res.status(400).json({ error: error.issues });
         console.error('Registration error:', error);
         res.status(500).json({ error: 'Registration failed' });
     }
