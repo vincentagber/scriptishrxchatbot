@@ -8,7 +8,7 @@ const helmet = require('helmet');
 const hpp = require('hpp');
 const crypto = require('crypto');
 const AppError = require('./utils/AppError');
-const globalErrorHandler = require('./middleware/errorHandler');
+
 
 const app = express();
 
