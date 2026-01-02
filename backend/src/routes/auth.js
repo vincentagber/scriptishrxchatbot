@@ -171,6 +171,32 @@ router.post('/register', registerLimiter, async (req, res) => {
 
         res.cookie('refresh_token', refreshToken, COOKIE_OPTIONS);
 
+        // Send Welcome Email
+        try {
+            const notificationService = require('../services/notificationService');
+            await notificationService.sendEmail(
+                user.email,
+                'Welcome to ScriptishRx!',
+                `
+                <div style="font-family: Arial, sans-serif; padding: 20px;">
+                    <h2>Welcome to ScriptishRx, ${user.name.split(' ')[0]}!</h2>
+                    <p>We are thrilled to have you on board. Your account has been successfully created.</p>
+                    <p><strong>Your Details:</strong></p>
+                    <ul>
+                        <li><strong>Email:</strong> ${user.email}</li>
+                        <li><strong>Role:</strong> ${user.role}</li>
+                        <li><strong>Workspace:</strong> ${tenant.name}</li>
+                    </ul>
+                    <p>You can now log in and start exploring the platform.</p>
+                    <br/>
+                    <a href="${process.env.NEXT_PUBLIC_APP_URL}/login" style="background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Go to Dashboard</a>
+                </div>
+                `
+            );
+        } catch (emailError) {
+            console.error('Failed to send welcome email:', emailError);
+        }
+
         res.status(201).json({
             token: accessToken,
             user: { id: user.id, email: user.email, name: user.name, role: user.role, tenantId: tenant.id },
@@ -183,7 +209,7 @@ router.post('/register', registerLimiter, async (req, res) => {
     }
 });
 
-// Login — NOW WORKS WITH VOICECAKE
+// Login — NOW WORKS WITH TWILIO
 router.post('/login', authLimiter, async (req, res) => {
     try {
         const result = loginSchema.safeParse(req.body);

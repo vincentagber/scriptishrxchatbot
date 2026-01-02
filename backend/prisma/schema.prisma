@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  engineType = "binary"
 }
 
 datasource db {
@@ -67,6 +68,10 @@ model User {
   phoneNumber  String?
   notifications Notification[]
   transactions Transaction[]
+  // Google Calendar integration fields
+  googleAccessToken   String? @db.Text
+  googleRefreshToken  String? @db.Text
+  googleTokenExpiry   BigInt?
 
   @@index([tenantId])
   @@index([email])

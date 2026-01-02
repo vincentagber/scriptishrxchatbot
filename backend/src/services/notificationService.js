@@ -61,7 +61,7 @@ class NotificationService {
             try {
                 await this.emailProvider.send({
                     to,
-                    from: process.env.EMAIL_FROM || 'noreply@scriptishrx.net',
+                    from: process.env.EMAIL_FROM || 'noreply@scriptishrx.com',
                     subject,
                     html,
                 });

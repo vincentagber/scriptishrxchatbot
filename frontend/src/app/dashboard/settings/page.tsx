@@ -239,7 +239,7 @@ function SubscriptionSettings({ plan, showToast }: any) {
     )
 }
 
-// --- Voice Agent Settings (Custom Twilio/OpenAI) ---
+// --- Voice Agent Settings (Twilio) ---
 function VoiceAgentSettings({ showToast }: { showToast: (msg: string, type: 'success' | 'error') => void }) {
     const [loading, setLoading] = useState(true);
     const [inboundPhone, setInboundPhone] = useState('');
@@ -369,7 +369,7 @@ function VoiceAgentSettings({ showToast }: { showToast: (msg: string, type: 'suc
                             type="text"
                             value={inboundPhone}
                             onChange={(e) => setInboundPhone(e.target.value)}
-                            placeholder="+1 (555) 123-4567"
+                            placeholder="+1 234 567 8900"
                             className="flex-1 px-4 py-3 bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 font-medium"
                         />
                         <button
@@ -880,7 +880,7 @@ export default function SettingsPage() {
                                                 className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all font-medium text-gray-900"
                                                 value={profile.phoneNumber}
                                                 onChange={(e) => setProfile({ ...profile, phoneNumber: e.target.value })}
-                                                placeholder="+1 (555) 555-5555"
+                                                placeholder="+1 234 567 8900"
                                             />
                                         </div>
                                     </div>
@@ -999,7 +999,7 @@ export default function SettingsPage() {
                         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                             <div>
                                 <h2 className="text-xl font-bold text-gray-900 mb-1">Voice Agent Configuration</h2>
-                                <p className="text-gray-500 text-sm">Connect your VoiceCake agent to handle inbound and outbound calls.</p>
+                                <p className="text-gray-500 text-sm">Connect your Twilio voice agent to handle inbound and outbound calls.</p>
                             </div>
 
                             <div className="p-6 bg-slate-50/50 rounded-2xl border border-slate-100 space-y-6">

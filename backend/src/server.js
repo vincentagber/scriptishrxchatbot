@@ -49,7 +49,7 @@ console.log('socket.io initialized');
 const WebSocket = require('ws');
 const wss = new WebSocket.Server({
     server,
-    path: '/media-stream'
+    path: '/api/voice/stream'
 });
 
 // Import Voice Service
@@ -78,7 +78,7 @@ server.listen(PORT, () => {
     console.log('ScriptishRx API Server Started Successfully');
     console.log('='.repeat(60));
     console.log(`Listening on:    ${typeof PORT === 'string' ? 'Named Pipe/Socket' : 'Port ' + PORT}`);
-    console.log(`WebSocket:       ws://localhost:${PORT}/media-stream`);
+    console.log(`WebSocket:       ws://localhost:${PORT}/api/voice/stream`);
     console.log(`Environment:     ${process.env.NODE_ENV || 'development'}`);
     console.log(`Root Directory:  ${path.resolve(__dirname, '../..')}`);
     console.log('\nConfiguration Status:');

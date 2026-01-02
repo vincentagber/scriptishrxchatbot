@@ -18,8 +18,8 @@ export function useVoiceStats() {
         queryKey: ['voice', 'stats'],
         queryFn: async () => {
             // Fetch from new endpoint
-            const { data } = await api.get('/voicecake/stats');
-            return data.stats;
+            const { data } = await api.get('/twilio/stats');
+            return data; // Endpoint now returns the stats object directly
         },
         refetchInterval: 5000, // Faster poll for voice stats
         refetchOnWindowFocus: true

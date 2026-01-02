@@ -12,6 +12,13 @@ const { checkFeature: checkGlobalFeature } = require('../config/features');
 // GLOBAL LOCK
 router.use(checkGlobalFeature('VOICE_AGENTS'));
 
+/**
+ * 4️⃣ HARD BLOCK browser access to voice routes
+ */
+router.all('/stream', (req, res) => {
+    res.status(426).send('Upgrade Required: Use WebSocket connection');
+});
+
 
 /**
  * GET /api/voice/health - Health check endpoint (public)

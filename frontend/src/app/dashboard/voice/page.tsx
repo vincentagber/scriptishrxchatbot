@@ -428,7 +428,7 @@ export default function VoicePage() {
                                     <Input
                                         value={inboundPhone}
                                         onChange={(e) => setInboundPhone(e.target.value)}
-                                        placeholder="+1 (555) 123-4567"
+                                        placeholder="+1 234 567 8900"
                                         className="bg-white border-gray-300 text-gray-900"
                                     />
                                 </div>
@@ -467,7 +467,7 @@ export default function VoicePage() {
                                     <div className="space-y-2">
                                         <label className="text-sm font-semibold text-gray-800">Your Phone Number</label>
                                         <Input
-                                            placeholder="+1 (555) 000-0000"
+                                            placeholder="+1 234 567 8900"
                                             value={phoneNumber}
                                             onChange={(e) => setPhoneNumber(e.target.value)}
                                             className="h-11 bg-gray-50 border border-gray-300 text-gray-900 placeholder:text-gray-400 focus-visible:ring-green-500 rounded-xl px-4"
