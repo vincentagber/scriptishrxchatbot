@@ -1,16 +1,19 @@
-const sgMail = require('@sendgrid/mail');
+const Mailjet = require('node-mailjet');
 const twilio = require('twilio');
 const prisma = require('../lib/prisma');
 const socketService = require('./socketService');
 
 class NotificationService {
     constructor() {
-        // Email Setup
-        if (process.env.SENDGRID_API_KEY) {
-            sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-            this.emailProvider = sgMail;
+        // Email Setup - Mailjet
+        if (process.env.MAILJET_API_KEY && process.env.MAILJET_SECRET_KEY) {
+            this.mailjet = Mailjet.apiConnect(
+                process.env.MAILJET_API_KEY,
+                process.env.MAILJET_SECRET_KEY
+            );
+            console.log('✅ Mailjet email provider configured');
         } else {
-            const msg = 'SENDGRID_API_KEY is not configured.';
+            const msg = 'MAILJET_API_KEY or MAILJET_SECRET_KEY is not configured.';
             if (process.env.NODE_ENV === 'production') {
                 console.error('🔴 FATAL: NotificationService - ' + msg + ' Email features will not work in production.');
                 throw new Error(msg);
@@ -54,27 +57,48 @@ class NotificationService {
         }
     }
 
+    /**
+     * Send email using Mailjet
+     */
     async sendEmail(to, subject, html) {
         if (!to) return;
 
-        if (this.emailProvider) {
+        const senderEmail = process.env.EMAIL_FROM || 'noreply@scriptishrx.com';
+        const senderName = process.env.EMAIL_FROM_NAME || 'ScriptishRx';
+
+        if (this.mailjet) {
             try {
-                await this.emailProvider.send({
-                    to,
-                    from: process.env.EMAIL_FROM || 'noreply@scriptishrx.com',
-                    subject,
-                    html,
-                });
-                console.log(`📧 Email sent to ${to}`);
+                const result = await this.mailjet
+                    .post('send', { version: 'v3.1' })
+                    .request({
+                        Messages: [
+                            {
+                                From: {
+                                    Email: senderEmail,
+                                    Name: senderName
+                                },
+                                To: [
+                                    {
+                                        Email: to
+                                    }
+                                ],
+                                Subject: subject,
+                                HTMLPart: html
+                            }
+                        ]
+                    });
+
+                console.log(`📧 Email sent to ${to} via Mailjet`);
+                return result;
             } catch (error) {
-                console.error(`❌ Email Failed (${to}):`, error.message);
-                if (error.response && error.response.body) {
-                    console.error('   Reason:', JSON.stringify(error.response.body, null, 2));
+                console.error(`❌ Mailjet Email Failed (${to}):`, error.message);
+                if (error.response) {
+                    console.error('   Response:', JSON.stringify(error.response.data || error.response.body, null, 2));
                 }
             }
         } else {
-            // In production we should never hit this branch due to constructor check.
-            console.log(`[MOCK EMAIL] To: ${to} | Subject: ${subject} | Body: ${html.substring(0, 50)}...`);
+            // Mock in development if not configured
+            console.log(`[MOCK EMAIL] To: ${to} | Subject: ${subject} | Body: ${html.substring(0, 100)}...`);
         }
     }
 
