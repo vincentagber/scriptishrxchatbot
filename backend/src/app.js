@@ -280,6 +280,15 @@ app.use((req, res) => {
     });
 });
 
+// ==================== SCHEDULED JOBS ====================
+// Initialize cron jobs for booking reminders and trial warnings
+try {
+    const { initializeScheduledJobs } = require('../scripts/scheduledJobs');
+    initializeScheduledJobs();
+} catch (err) {
+    console.error('⚠️ Failed to initialize scheduled jobs:', err.message);
+}
+
 // Global Error Handler
 app.use((err, req, res, next) => {
     console.error('Server error:', err);

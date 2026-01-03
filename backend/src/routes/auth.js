@@ -173,30 +173,19 @@ router.post('/register', registerLimiter, async (req, res) => {
 
         res.cookie('refresh_token', refreshToken, COOKIE_OPTIONS);
 
-        // Send Welcome Email
+        // Send Welcome Email (Non-blocking)
         try {
             const notificationService = require('../services/notificationService');
-            await notificationService.sendEmail(
+            notificationService.sendTemplatedEmail(
                 user.email,
-                'Welcome to ScriptishRx!',
-                `
-                <div style="font-family: Arial, sans-serif; padding: 20px;">
-                    <h2>Welcome to ScriptishRx, ${user.name.split(' ')[0]}!</h2>
-                    <p>We are thrilled to have you on board. Your account has been successfully created.</p>
-                    <p><strong>Your Details:</strong></p>
-                    <ul>
-                        <li><strong>Email:</strong> ${user.email}</li>
-                        <li><strong>Role:</strong> ${user.role}</li>
-                        <li><strong>Workspace:</strong> ${tenant.name}</li>
-                    </ul>
-                    <p>You can now log in and start exploring the platform.</p>
-                    <br/>
-                    <a href="${process.env.NEXT_PUBLIC_APP_URL}/login" style="background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Go to Dashboard</a>
-                </div>
-                `
+                'WELCOME_EMAIL',
+                {
+                    name: user.name?.split(' ')[0] || 'there',
+                    dashboardUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://scriptishrx.net'}/dashboard`
+                }
             );
         } catch (emailError) {
-            console.error('Failed to send welcome email:', emailError);
+            console.error('[Auth] Welcome email failed:', emailError.message);
         }
 
         res.status(201).json({
