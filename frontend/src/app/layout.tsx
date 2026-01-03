@@ -3,12 +3,11 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import Providers from './providers';
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
     title: 'ScriptishRx | Modern Business CRM & Enterprise Management',
     description: 'Transform your business operations with ScriptishRx.',
-    icons: '/logo.jpg',
 };
 
 export default function RootLayout({
@@ -17,8 +16,8 @@ export default function RootLayout({
     children: React.ReactNode;
 }) {
     return (
-        <html lang="en" suppressHydrationWarning>
-            <body className={`${inter.variable} antialiased font-sans`}>
+        <html lang="en">
+            <body className={inter.className}>
                 <Providers>{children}</Providers>
             </body>
         </html>
